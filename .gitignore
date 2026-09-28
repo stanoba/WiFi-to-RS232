@@ -1,0 +1,15 @@
+# PlatformIO build directory
+.pio/
+software/.pio/
+
+# Editor and IDE directories
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# Temporary scratch directory
+scratch/
+
+# CAM and manufacturing outputs
+CAMOutputs/
