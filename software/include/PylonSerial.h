@@ -128,7 +128,7 @@ public:
                 if (bytesRead == 0 && (millis() - startTime > 1200)) {
                     break;
                 }
-                if (response.length() > 30 && (millis() - lastByteTime > 400)) {
+                if (response.length() > 30 && (millis() - lastByteTime > (bytesRead > 200 ? 800 : 400))) {
                     break;
                 }
                 delay(2);

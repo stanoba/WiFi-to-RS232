@@ -136,7 +136,10 @@ public:
         if (currentModIdx < 1 || currentModIdx > MAX_MODULES) currentModIdx = 1;
 
         bool isKeyValueFormat = false;
-        if (response.indexOf("Voltage") >= 0 && response.indexOf(':') >= 0) {
+        // Key-value format (single-module) has lines like "Voltage : 49770"
+        // Tabular format (multi-module / master) has "Battery  Volt  Curr ..." header
+        // Distinguish by checking for ':' separator AND absence of tabular header keyword
+        if (response.indexOf(':') >= 0 && response.indexOf("Battery") == -1) {
             isKeyValueFormat = true;
         }
 
@@ -199,6 +202,18 @@ public:
                     p.currMa = val.toInt();
                 } else if (key.equalsIgnoreCase("Temperature")) {
                     p.tempMdeg = val.toInt();
+                } else if ((key.indexOf("Temp") >= 0 && key.indexOf("High") >= 0 && key.indexOf("Mos") == -1) ||
+                           key.equalsIgnoreCase("Tempr High")) {
+                    p.tempHighMdeg = val.toInt();
+                } else if ((key.indexOf("Temp") >= 0 && key.indexOf("Low") >= 0 && key.indexOf("Mos") == -1) ||
+                           key.equalsIgnoreCase("Tempr Low")) {
+                    p.tempLowMdeg = val.toInt();
+                } else if ((key.indexOf("Volt") >= 0 && key.indexOf("High") >= 0) ||
+                           key.equalsIgnoreCase("Volt High")) {
+                    p.voltHighMv = val.toInt();
+                } else if ((key.indexOf("Volt") >= 0 && key.indexOf("Low") >= 0) ||
+                           key.equalsIgnoreCase("Volt Low")) {
+                    p.voltLowMv = val.toInt();
                 } else if (key.indexOf("Mos") >= 0 && key.indexOf("Temp") >= 0 && key.indexOf("Status") == -1) {
                     p.mosTempMdeg = val.toInt();
                 } else if (key.equalsIgnoreCase("Coulomb")) {
