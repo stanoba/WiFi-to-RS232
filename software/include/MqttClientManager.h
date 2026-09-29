@@ -20,6 +20,7 @@ private:
     String topicPrefix = "homeassistant/sensor/pylontech";
     uint32_t lastReconnectAttempt = 0;
     bool discoveryPublished = false;
+    const BatteryStack *stackRef = nullptr;  // set on first publishState(); used by loop() to publish discovery right after reconnect
 
     // Returns the HA device JSON fragment (shared across all sensors)
     String deviceJson(const BatteryStack &stack) {
@@ -90,7 +91,11 @@ public:
             uint32_t now = millis();
             if (now - lastReconnectAttempt > 15000) {
                 lastReconnectAttempt = now;
-                reconnect();
+                if (reconnect() && stackRef != nullptr) {
+                    // Publish discovery immediately after connect so HA registers
+                    // all entities well before the first state payload arrives
+                    publishDiscovery(*stackRef);
+                }
             }
         } else {
             mqtt.loop();
@@ -190,6 +195,9 @@ public:
 
     void publishState(const BatteryStack &stack) {
         if (!enabled || !mqtt.connected()) return;
+
+        // Keep stackRef current so loop() can republish discovery after reconnect
+        stackRef = &stack;
 
         if (!discoveryPublished) {
             publishDiscovery(stack);
