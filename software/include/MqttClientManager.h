@@ -275,18 +275,10 @@ public:
                 else
                     addNull("mos_temp");
 
-                // Cell high/low voltage (V)
-                addF("cell_high_v", mod.power.voltHighMv / 1000.0f, 3);
-                addF("cell_low_v",  mod.power.voltLowMv  / 1000.0f, 3);
-
-                // Cell high/low temperature (°C)
-                addF("cell_high_t", mod.power.tempHighMdeg / 1000.0f, 1);
-                addF("cell_low_t",  mod.power.tempLowMdeg  / 1000.0f, 1);
-
-                // Volt spread (mV) — prefer parsed direct values, fallback to cell array
-                int vSpread = (mod.power.voltHighMv > mod.power.voltLowMv)
-                              ? (mod.power.voltHighMv - mod.power.voltLowMv) : 0;
-                if (vSpread == 0 && mod.cellCountParsed > 0) {
+                // Cell high/low voltage (V) — prefer direct pwr fields, fallback to cell array
+                int32_t cellHighV = mod.power.voltHighMv;
+                int32_t cellLowV  = mod.power.voltLowMv;
+                if ((cellHighV == 0 || cellLowV == 0) && mod.cellCountParsed > 0) {
                     uint16_t vMin = 65535, vMax = 0;
                     for (uint8_t c = 0; c < mod.cellCountParsed; ++c) {
                         if (mod.cells[c].voltMv > 0) {
@@ -294,7 +286,36 @@ public:
                             if (mod.cells[c].voltMv > vMax) vMax = mod.cells[c].voltMv;
                         }
                     }
-                    if (vMax >= vMin && vMin > 0) vSpread = vMax - vMin;
+                    if (vMin > 0 && vMax > 0) { cellHighV = vMax; cellLowV = vMin; }
+                }
+                if (cellHighV > 0) addF("cell_high_v", cellHighV / 1000.0f, 3);
+                else addNull("cell_high_v");
+                if (cellLowV > 0) addF("cell_low_v", cellLowV / 1000.0f, 3);
+                else addNull("cell_low_v");
+
+                // Cell high/low temperature (°C) — prefer direct pwr fields, fallback to cell array
+                int32_t cellHighT = mod.power.tempHighMdeg;
+                int32_t cellLowT  = mod.power.tempLowMdeg;
+                if ((cellHighT == 0 || cellLowT == 0) && mod.cellCountParsed > 0) {
+                    int32_t tMin = INT32_MAX, tMax = INT32_MIN;
+                    for (uint8_t c = 0; c < mod.cellCountParsed; ++c) {
+                        if (mod.cells[c].tempMdeg != 0) {
+                            if (mod.cells[c].tempMdeg < tMin) tMin = mod.cells[c].tempMdeg;
+                            if (mod.cells[c].tempMdeg > tMax) tMax = mod.cells[c].tempMdeg;
+                        }
+                    }
+                    if (tMin != INT32_MAX) { cellHighT = tMax; cellLowT = tMin; }
+                }
+                if (cellHighT != 0) addF("cell_high_t", cellHighT / 1000.0f, 1);
+                else addNull("cell_high_t");
+                if (cellLowT != 0) addF("cell_low_t", cellLowT / 1000.0f, 1);
+                else addNull("cell_low_t");
+
+                // Volt spread (mV) — prefer parsed direct values, fallback to cell array
+                int vSpread = (mod.power.voltHighMv > mod.power.voltLowMv)
+                              ? (mod.power.voltHighMv - mod.power.voltLowMv) : 0;
+                if (vSpread == 0 && cellHighV > 0 && cellLowV > 0) {
+                    vSpread = (int)(cellHighV - cellLowV);
                 }
                 addI("vspread", vSpread);
 

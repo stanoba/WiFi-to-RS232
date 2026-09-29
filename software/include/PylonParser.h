@@ -218,17 +218,26 @@ public:
                     p.mosTempMdeg = val.toInt();
                 } else if (key.equalsIgnoreCase("Coulomb")) {
                     p.socPercent = val.toInt();
-                } else if (key.equalsIgnoreCase("Basic Status")) {
+                } else if (key.equalsIgnoreCase("Basic Status") || key.equalsIgnoreCase("Base State") || key.equalsIgnoreCase("Basic State")) {
                     strncpy(p.baseState, val.c_str(), sizeof(p.baseState) - 1);
-                } else if (key.equalsIgnoreCase("Voltage Status") || (key.indexOf("Volt") >= 0 && key.indexOf("Status") >= 0 && key.indexOf("Mos") == -1)) {
-                    strncpy(p.voltState, val.c_str(), sizeof(p.voltState) - 1);
-                } else if (key.equalsIgnoreCase("Current Status") || (key.indexOf("Curr") >= 0 && key.indexOf("Status") >= 0)) {
-                    strncpy(p.currState, val.c_str(), sizeof(p.currState) - 1);
-                } else if (key.indexOf("Mos") >= 0 && key.indexOf("Temp") >= 0 && key.indexOf("Status") >= 0) {
+                } else if (key.indexOf("Mos") >= 0 && key.indexOf("Temp") >= 0 &&
+                           (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0)) {
                     strncpy(p.mosTempState, val.c_str(), sizeof(p.mosTempState) - 1);
-                } else if (key.equalsIgnoreCase("Temperature Status") || (key.indexOf("Temp") >= 0 && key.indexOf("Status") >= 0 && key.indexOf("Mos") == -1)) {
+                } else if ((key.indexOf("Volt") >= 0 || key.indexOf("Bat") >= 0) &&
+                           (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0) &&
+                           key.indexOf("Mos") == -1 && key.indexOf("Curr") == -1 &&
+                           key.indexOf("Temp") == -1 && key.indexOf("High") == -1 &&
+                           key.indexOf("Low") == -1) {
+                    strncpy(p.voltState, val.c_str(), sizeof(p.voltState) - 1);
+                } else if (key.indexOf("Curr") >= 0 &&
+                           (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0)) {
+                    strncpy(p.currState, val.c_str(), sizeof(p.currState) - 1);
+                } else if (key.indexOf("Temp") >= 0 && key.indexOf("Mos") == -1 &&
+                           (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0) &&
+                           key.indexOf("High") == -1 && key.indexOf("Low") == -1) {
                     strncpy(p.tempState, val.c_str(), sizeof(p.tempState) - 1);
-                } else if (key.equalsIgnoreCase("Soh. Status") || key.equalsIgnoreCase("SOH Status") || (key.indexOf("Soh") >= 0 && key.indexOf("Status") >= 0)) {
+                } else if ((key.indexOf("Soh") >= 0 || key.indexOf("SOH") >= 0) &&
+                           (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0)) {
                     strncpy(p.sohState, val.c_str(), sizeof(p.sohState) - 1);
                 }
             } else {
