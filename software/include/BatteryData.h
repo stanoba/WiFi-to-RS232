@@ -74,6 +74,7 @@ struct ModulePower {
     char     voltState[16] = {0};
     char     currState[16] = {0};
     char     tempState[16] = {0};
+    char     mosTempState[16] = {0};
     char     sohState[16] = {0};
     char     timestamp[32] = {0};
     bool     valid = false;

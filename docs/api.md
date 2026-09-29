@@ -418,3 +418,106 @@ sensor:
     value_template: "{{ value_json.stack.soc }}"
     unit_of_measurement: "%"
 ```
+
+---
+
+## 5. MQTT / Home Assistant Auto-Discovery
+
+When MQTT is enabled in **Settings**, the monitor publishes Home Assistant
+[MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery)
+messages automatically. No manual `configuration.yaml` entries are required.
+
+### Topic structure
+
+| Topic | Payload | Retained | Description |
+|:---|:---:|:---:|:---|
+| `homeassistant/sensor/pylontech_<id>/config` | JSON | ✅ | HA discovery config (one per sensor) |
+| `<prefix>/state` | JSON | ❌ | Stack-level live state |
+| `<prefix>/mod<N>/state` | JSON | ❌ | Per-module live state (one topic per module) |
+
+> Default prefix: `homeassistant/sensor/pylontech` — configurable in Settings.
+
+---
+
+### Stack-level sensors (`<prefix>/state`)
+
+| HA Entity | JSON key | Unit | Device Class |
+|:---|:---|:---:|:---|
+| Stack Voltage | `voltage` | V | `voltage` |
+| Stack Current | `current` | A | `current` |
+| Stack Power | `power` | W | `power` |
+| Stack SOC | `soc` | % | `battery` |
+| Stack SOH | `soh` | % | — |
+| Active Modules | `modules` | — | — |
+
+---
+
+### Per-module sensors (`<prefix>/mod<N>/state`)
+
+Each present module publishes its own JSON state message. The following sensors
+are created per module:
+
+#### Measurement sensors
+
+| HA Entity | JSON key | Unit | Device Class |
+|:---|:---|:---:|:---|
+| Module N Voltage | `voltage` | V | `voltage` |
+| Module N Current | `current` | A | `current` |
+| Module N State of Charge | `soc` | % | `battery` |
+| Module N Temperature | `temp` | °C | `temperature` |
+| Module N MOSFET Temperature | `mos_temp` | °C | `temperature` |
+| Module N Cell High Voltage | `cell_high_v` | V | `voltage` |
+| Module N Cell Low Voltage | `cell_low_v` | V | `voltage` |
+| Module N Cell High Temperature | `cell_high_t` | °C | `temperature` |
+| Module N Cell Low Temperature | `cell_low_t` | °C | `temperature` |
+| Module N Volt Spread | `vspread` | mV | — |
+| Module N State of Health | `soh` | % | — |
+
+#### Status / enum sensors
+
+| HA Entity | JSON key | Example values |
+|:---|:---|:---|
+| Module N Status | `status` | `Charge`, `Dischg`, `Idle`, `Balance` |
+| Module N Battery Voltage Status | `volt_status` | `Normal`, `High`, `Low` |
+| Module N Current Status | `curr_status` | `Normal`, `High` |
+| Module N Temperature Status | `temp_status` | `Normal`, `High`, `Low` |
+| Module N Battery Temperature Status | `bat_t_status` | `Normal`, `High`, `Low` |
+| Module N MOSFET Temperature Status | `mos_status` | `Normal`, `High` |
+
+#### Master-only sensors
+
+The following sensors are published **only for the active (master) module**
+and only when the `euro` statistics have been received from the BMS:
+
+| HA Entity | JSON key | Unit | Device Class |
+|:---|:---:|:---:|:---|
+| Module N Capacity Throughput | `cap_ah` | Ah | `energy_storage` |
+| Module N Energy Throughput | `energy_wh` | Wh | `energy` |
+
+---
+
+### Example per-module state payload
+
+```json
+{
+  "voltage": 49.772,
+  "current": -2.30,
+  "soc": 86,
+  "temp": 25.9,
+  "mos_temp": 27.4,
+  "cell_high_v": 3.319,
+  "cell_low_v": 3.318,
+  "cell_high_t": 26.1,
+  "cell_low_t": 24.8,
+  "vspread": 1,
+  "status": "Dischg",
+  "volt_status": "Normal",
+  "curr_status": "Normal",
+  "temp_status": "Normal",
+  "bat_t_status": "Normal",
+  "mos_status": "Normal",
+  "soh": 99,
+  "cap_ah": 27671,
+  "energy_wh": 138355
+}
+```
