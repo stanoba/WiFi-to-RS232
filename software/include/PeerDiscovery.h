@@ -11,10 +11,11 @@
 struct DiscoveredPeer {
     String hostname;
     IPAddress ip;
-    uint16_t port;
+    uint16_t port = 80;
     String version;
     String model;
-    uint32_t lastSeenSec;
+    uint8_t moduleCount = 0;
+    uint32_t lastSeenSec = 0;
 };
 
 class PeerDiscoveryManager {
@@ -107,6 +108,12 @@ public:
             if (MDNS.hasTxt(i, "model")) {
                 pModel = MDNS.txt(i, "model");
             }
+            uint8_t pModules = 0;
+            if (MDNS.hasTxt(i, "modules")) {
+                pModules = (uint8_t)MDNS.txt(i, "modules").toInt();
+            } else if (MDNS.hasTxt(i, "mods")) {
+                pModules = (uint8_t)MDNS.txt(i, "mods").toInt();
+            }
 
             // Exclude self by IP
             if (pIp == myIp) continue;
@@ -122,6 +129,7 @@ public:
             p.port = (pPort > 0) ? pPort : 80;
             p.version = pVer;
             p.model = pModel;
+            p.moduleCount = pModules;
             p.lastSeenSec = nowSec;
 
             found.push_back(p);

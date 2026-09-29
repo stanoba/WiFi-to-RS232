@@ -210,6 +210,8 @@ ESP32 controller diagnostics — always present in the response.
 | `ip` | string | Device IPv4 address |
 | `mac` | string | Device WiFi MAC address |
 | `reset_reason` | string | Human-readable last reset cause (e.g. `"Power-on"`, `"Watchdog"`) |
+| `mqtt_enabled` | boolean | Whether MQTT client is enabled in settings |
+| `mqtt_connected` | boolean | Current MQTT broker connection state |
 
 ---
 
@@ -292,6 +294,7 @@ curl -s http://192.168.1.150/api/peers
     "ip": "192.168.5.134",
     "port": 80,
     "model": "US3000C",
+    "modules": 6,
     "ver": "1.2.0"
   },
   {
@@ -299,6 +302,7 @@ curl -s http://192.168.1.150/api/peers
     "ip": "192.168.5.136",
     "port": 80,
     "model": "US3000C",
+    "modules": 5,
     "ver": "1.2.0"
   }
 ]
@@ -309,6 +313,7 @@ curl -s http://192.168.1.150/api/peers
 * `ip` *(string)*: IPv4 address of the peer device.
 * `port` *(integer)*: HTTP Web Portal port (default `80`).
 * `model` *(string)*: Pylontech battery model reported by the peer (e.g. `"US3000C"`).
+* `modules` *(integer)*: Number of connected battery modules reported by the peer (e.g. `6`).
 * `ver` *(string)*: Firmware version running on the peer device (e.g. `"1.2.0"`).
 
 ---
@@ -431,11 +436,12 @@ messages automatically. No manual `configuration.yaml` entries are required.
 
 | Topic | Payload | Retained | Description |
 |:---|:---:|:---:|:---|
-| `homeassistant/sensor/pylontech_<id>/config` | JSON | ✅ | HA discovery config (one per sensor) |
-| `<prefix>/state` | JSON | ❌ | Stack-level live state |
-| `<prefix>/mod<N>/state` | JSON | ❌ | Per-module live state (one topic per module) |
+| `homeassistant/sensor/pylontech_<suffix>_<sensor>/config` | JSON | ✅ | HA discovery config (one per sensor, unique per device) |
+| `<prefix>_<suffix>/state` | JSON | ❌ | Stack-level live state |
+| `<prefix>_<suffix>/mod<N>/state` | JSON | ❌ | Per-module live state (one topic per module) |
 
-> Default prefix: `homeassistant/sensor/pylontech` — configurable in Settings.
+> **Multi-Device Support:** `<suffix>` is the last 4 characters of the device WiFi MAC address (e.g. `b016`).
+> Default prefix is `homeassistant/sensor/pylontech`. If two or more Pylon Smart Monitors connect to the same MQTT broker, each is registered as its own distinct device in Home Assistant with zero topic collision. Custom prefix can be set in Settings.
 
 ---
 

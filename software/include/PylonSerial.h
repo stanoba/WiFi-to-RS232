@@ -211,54 +211,50 @@ public:
 
         // Step 4: Slow telemetry (stat, info, soh/euro) -> ONLY when fullSlowPoll is true (every 5 min)
         if (fullSlowPoll) {
-            if (stack.model == MODEL_US3000C) {
-                String respStat = sendCommand("stat");
-                PylonParser::parseStat(respStat, stack, targetMod);
-                drainUserQueue();
+            const ModelProfile *prof = getModelProfile(stack.model);
+            uint8_t primaryMod = stack.isMaster ? 1 : targetMod;
 
-                String respInfo = sendCommand("info");
-                PylonParser::parseInfo(respInfo, stack, targetMod);
-                drainUserQueue();
+            // Primary module always receives plain 'stat' and 'info' without index
+            // (US3000D syntax is strictly 'stat' / 'info'; US3000C also defaults to active unit)
+            String respStat = sendCommand("stat");
+            PylonParser::parseStat(respStat, stack, primaryMod);
+            drainUserQueue();
 
+            String respInfo = sendCommand("info");
+            PylonParser::parseInfo(respInfo, stack, primaryMod);
+            drainUserQueue();
+
+            if (prof->supportsEuro) {
+                String respEuro = sendCommand("euro");
+                PylonParser::parseEuro(respEuro, stack, primaryMod);
+                drainUserQueue();
+            } else if (prof->supportsSohCmd) {
                 String respSoh = sendCommand("soh");
-                PylonParser::parseSoh(respSoh, stack, targetMod);
+                PylonParser::parseSoh(respSoh, stack, primaryMod);
                 drainUserQueue();
+            }
 
-                if (stack.isMaster && stack.moduleCount > 1) {
-                    for (uint8_t n = 1; n <= stack.moduleCount && n <= MAX_MODULES; ++n) {
-                        if (!stack.modules[n].present || n == targetMod) continue;
+            // Slave modules in master stack (only for models that support indexed queries, e.g. US3000C)
+            if (stack.isMaster && stack.moduleCount > 1) {
+                for (uint8_t n = 1; n <= stack.moduleCount && n <= MAX_MODULES; ++n) {
+                    if (!stack.modules[n].present || n == primaryMod) continue;
 
+                    if (prof->slaveSupportsStat) {
                         String rStatN = sendCommand("stat " + String(n));
                         PylonParser::parseStat(rStatN, stack, n);
                         drainUserQueue();
-
+                    }
+                    if (prof->slaveSupportsInfo) {
                         String rInfoN = sendCommand("info " + String(n));
                         PylonParser::parseInfo(rInfoN, stack, n);
                         drainUserQueue();
-
+                    }
+                    if (prof->slaveSupportsSoh) {
                         String rSohN = sendCommand("soh " + String(n));
                         PylonParser::parseSoh(rSohN, stack, n);
                         drainUserQueue();
                     }
                 }
-            } else {
-                // Primary battery is model US3000D:
-                // Commands 'stat', 'info', and 'euro' only exist on the master battery (Module 1).
-                // They can ONLY be executed for the first battery (Module 1).
-                String respStat = sendCommand("stat");
-                PylonParser::parseStat(respStat, stack, 1);
-                drainUserQueue();
-
-                String respInfo = sendCommand("info");
-                PylonParser::parseInfo(respInfo, stack, 1);
-                drainUserQueue();
-
-                String respEuro = sendCommand("euro");
-                PylonParser::parseEuro(respEuro, stack, 1);
-                drainUserQueue();
-
-                // Slave modules (n > 1) connected to US3000D master do not support 'stat', 'info', or 'euro'.
-                // Do NOT query them with index, and do NOT copy master's info/stats/euro to them.
             }
         }
 
@@ -275,10 +271,12 @@ public:
         if (modIndex < 1 || modIndex > MAX_MODULES) return false;
         consoleLog.logInfo("Executing on-demand refresh for Module #" + String(modIndex));
 
-        String modArg = (modIndex == stack.activeModuleIndex && !stack.isMaster) ? "" : (" " + String(modIndex));
+        const ModelProfile *prof = getModelProfile(stack.model);
+        bool isPrimary = (modIndex == 1 || !stack.isMaster || modIndex == stack.activeModuleIndex);
+        String modArg = isPrimary ? "" : (" " + String(modIndex));
 
         // 1. bat - always supports module index
-        String rBat = sendCommand("bat" + modArg);
+        String rBat = sendCommand("bat" + (isPrimary && !stack.isMaster ? "" : (" " + String(modIndex))));
         PylonParser::parseBat(rBat, stack, modIndex);
 
         // 2. pwr - stack level
@@ -286,27 +284,33 @@ public:
         PylonParser::parsePwr(rPwr, stack);
 
         // 3. stat, 4. info & 5. euro / soh
-        if (stack.model == MODEL_US3000D) {
-            // US3000D: commands 'stat', 'info', and 'euro' can ONLY be executed for Module 1
-            if (modIndex == 1) {
-                String rStat = sendCommand("stat");
-                PylonParser::parseStat(rStat, stack, 1);
-
-                String rInfo = sendCommand("info");
-                PylonParser::parseInfo(rInfo, stack, 1);
-
-                String rEuro = sendCommand("euro");
-                PylonParser::parseEuro(rEuro, stack, 1);
-            }
-        } else {
-            String rStat = sendCommand("stat" + modArg);
+        if (isPrimary) {
+            String rStat = sendCommand("stat");
             PylonParser::parseStat(rStat, stack, modIndex);
 
-            String rInfo = sendCommand("info" + modArg);
+            String rInfo = sendCommand("info");
             PylonParser::parseInfo(rInfo, stack, modIndex);
 
-            String rSoh = sendCommand("soh" + modArg);
-            PylonParser::parseSoh(rSoh, stack, modIndex);
+            if (prof->supportsEuro) {
+                String rEuro = sendCommand("euro");
+                PylonParser::parseEuro(rEuro, stack, modIndex);
+            } else if (prof->supportsSohCmd) {
+                String rSoh = sendCommand("soh");
+                PylonParser::parseSoh(rSoh, stack, modIndex);
+            }
+        } else {
+            if (prof->slaveSupportsStat) {
+                String rStat = sendCommand("stat" + modArg);
+                PylonParser::parseStat(rStat, stack, modIndex);
+            }
+            if (prof->slaveSupportsInfo) {
+                String rInfo = sendCommand("info" + modArg);
+                PylonParser::parseInfo(rInfo, stack, modIndex);
+            }
+            if (prof->slaveSupportsSoh) {
+                String rSoh = sendCommand("soh" + modArg);
+                PylonParser::parseSoh(rSoh, stack, modIndex);
+            }
         }
 
         consoleLog.logInfo("On-demand refresh finished for Module #" + String(modIndex));

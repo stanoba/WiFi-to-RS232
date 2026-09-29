@@ -138,11 +138,11 @@ html.dark .ap-banner a{color:#fbbf24;}
 @media(max-width:1100px){.grid-dash{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:640px){.grid-dash{grid-template-columns:repeat(2,1fr);gap:10px;}}
 @media(max-width:400px){.grid-dash{grid-template-columns:1fr;}}
-.grid-dash .card{padding:14px 14px 12px 14px;display:flex;flex-direction:column;justify-content:flex-start;min-height:96px;}
-.grid-dash .card h3{margin:0 0 6px 0;font-size:0.78rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-dash .card .val{font-size:1.65rem;font-weight:700;color:var(--navy);display:flex;align-items:baseline;line-height:1.15;}
-.grid-dash .card .sub{font-size:0.75rem;color:#718096;margin-top:auto;padding-top:4px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-dash .card .unit{font-size:0.88rem;color:#718096;margin-left:4px;font-weight:500;}
+.grid-dash .card{padding:14px 15px 12px 15px;display:flex;flex-direction:column;justify-content:flex-start;min-height:102px;}
+.grid-dash .card h3{margin:0 0 6px 0;font-size:0.84rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.grid-dash .card .val{font-size:1.85rem;font-weight:800;color:var(--navy);display:flex;align-items:baseline;line-height:1.15;}
+.grid-dash .card .sub{font-size:0.80rem;color:#718096;margin-top:auto;padding-top:4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.grid-dash .card .unit{font-size:1.00rem;color:#718096;margin-left:5px;font-weight:600;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:0 4px 12px rgba(23,28,97,0.04);position:relative;overflow:hidden;}
 html.dark .card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--teal);}
@@ -150,11 +150,7 @@ html.dark .card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .card.card-green::before{background:var(--green);}
 .card.card-navy::before{background:var(--navy);}
 .card.card-amber::before{background:#d97706;}
-.card.card-amber .val{color:#c2410c;}
-html.dark .card.card-amber .val{color:#fb923c;}
 .card.card-blue::before{background:#2563eb;}
-.card.card-blue .val{color:#1d4ed8;}
-html.dark .card.card-blue .val{color:#60a5fa;}
 .card.card-power::before{background:#00b3ba;}
 .card.card-red::before{background:#dc2626;}
 .card h3{margin:0 0 8px 0;font-size:0.92rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;}
@@ -163,6 +159,17 @@ html.dark .card.card-blue .val{color:#60a5fa;}
 .card .unit{font-size:0.95rem;color:#718096;margin-left:5px;font-weight:500;}
 html.dark .card h3, html.dark .grid-dash .card h3{color:#94a3b8;}
 html.dark .card .sub, html.dark .grid-dash .card .sub, html.dark .grid-dash .card .unit{color:#94a3b8;}
+.scrape-banner{background:#f0fdfa;border:1.5px solid var(--teal);border-left:5px solid var(--teal);color:var(--navy);padding:10px 16px;border-radius:8px;margin-bottom:18px;font-size:0.88rem;display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.scrape-banner a{color:#008b91;font-weight:700;text-decoration:underline;}
+html.dark .scrape-banner{background:rgba(45,212,191,0.08);border-color:rgba(45,212,191,0.35);border-left-color:var(--teal);color:#f1f5f9;}
+html.dark .scrape-banner a{color:var(--teal);}
+@media(max-width:680px){.scrape-banner{flex-wrap:wrap;}}
+.alert-warn{background:#fffbeb;border:1px solid #fef3c7;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:0.85rem;color:#92400e;}
+html.dark .alert-warn{background:#451a03;border-color:#78350f;color:#fde68a;}
+.wifi-net-item{padding:9px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s;}
+.wifi-net-item:hover{background:#f1f5f9;}
+html.dark .wifi-net-item:hover{background:#1e293b;}
+.wifi-net-item:last-child{border-bottom:none;}
 .sys-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;box-shadow:0 4px 12px rgba(23,28,97,0.04);margin-bottom:20px;}
 html.dark .sys-card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .sys-hdr{color:var(--navy);font-weight:700;font-size:0.92rem;letter-spacing:0.06em;margin-bottom:12px;border-bottom:2px solid var(--teal);padding-bottom:6px;display:flex;align-items:center;gap:8px;}
@@ -736,7 +743,10 @@ public:
             if (!checkWebAuth()) return;
             prefs.remove("ssid");
             prefs.remove("pass");
-            server.send(200, "text/html", "<!DOCTYPE html><html><body style='font-family:sans-serif;text-align:center;padding:50px;'><h3 style='color:#171c61;'>WiFi credentials erased.</h3><p>Restarting in AP mode...</p></body></html>");
+            server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><style>"
+                                          "body{font-family:sans-serif;text-align:center;padding:50px;background:#f4f6fa;color:#171c61;}"
+                                          "@media(prefers-color-scheme:dark){body{background:#0b1120;color:#e2e8f0;}}"
+                                          "</style></head><body><h3 style='color:#dc2626;'>WiFi credentials erased.</h3><p>Restarting in AP mode...</p></body></html>");
             delay(1000);
             ESP.restart();
         });
@@ -1184,9 +1194,9 @@ private:
         html += renderHeader("Dashboard", "dash");
 
         if (stack.moduleCount == 0) {
-            html += "<div style='background:#f0fdfa;border:1.5px solid var(--teal);border-left:5px solid var(--teal);color:var(--navy);padding:12px 18px;border-radius:8px;margin-bottom:18px;font-size:0.9rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;'>\n";
-            html += "  <div><span style='font-size:1.1rem;margin-right:6px;'>⏳</span> <b>Initial Battery Telemetry Scrape in Progress...</b> Connecting to Pylontech BMS. Please wait a few seconds and <a href='/' style='color:#008b91;font-weight:700;text-decoration:underline;'>refresh this page</a> or click <b>Poll Now</b>.</div>\n";
-            html += "  <a href='/poll_now' class='btn btn-outline' style='padding:5px 12px;font-size:0.82rem;'>Poll Now</a>\n";
+            html += "<div class='scrape-banner'>\n";
+            html += "  <div style='display:flex;align-items:center;gap:8px;min-width:0;'><span>⏳</span> <span><b>Initial Battery Telemetry Scrape in Progress...</b> Connecting to BMS. Please wait or click <b>Poll Now</b>.</span></div>\n";
+            html += "  <a href='/poll_now' class='btn btn-outline' style='padding:5px 12px;font-size:0.82rem;white-space:nowrap;flex-shrink:0;'>Poll Now</a>\n";
             html += "</div>\n";
         }
 
@@ -1423,7 +1433,7 @@ private:
         html += "      <div class='sys-row'><span class='sys-label'>Battery link</span><span id='sysBatLink' class='sys-val'>" + batLink + "</span></div>\n";
         html += "      <div class='sys-row'><span class='sys-label'>Battery units</span><span id='sysBatUnits' class='sys-val'>" + String(stack.moduleCount) + "</span></div>\n";
         html += "      <div class='sys-row'><span class='sys-label'>Uptime</span><span id='sysUptime' class='sys-val'>" + uptimeStr + "</span></div>\n";
-        html += "      <div class='sys-row'><span class='sys-label'>Home Assistant (MQTT)</span><span class='sys-val'>" + mqStatus + "</span></div>\n";
+        html += "      <div class='sys-row'><span class='sys-label'>Home Assistant (MQTT)</span><span id='sysMqtt' class='sys-val'>" + mqStatus + "</span></div>\n";
         html += "    </div>\n";
         html += "    <div>\n";
         html += "      <div class='sys-row'><span class='sys-label'>Free RAM</span><span id='sysRam' class='sys-val'>" + String(sys.heapFree / 1024) + " KB (" + String(sys.heapFragPct) + "% frag)</span></div>\n";
@@ -1450,6 +1460,7 @@ private:
             html += "        <th>Device Name</th>\n";
             html += "        <th>IP Address</th>\n";
             html += "        <th>Battery Model</th>\n";
+            html += "        <th>Modules</th>\n";
             html += "        <th>Firmware</th>\n";
             html += "        <th style='text-align:right;'>Action</th>\n";
             html += "      </tr>\n";
@@ -1460,6 +1471,7 @@ private:
                 html += "        <td><a href='http://" + peer.ip.toString() + "/' target='_blank' class='mod-dev-link'><b>" + peer.hostname + ".local</b></a></td>\n";
                 html += "        <td><a href='http://" + peer.ip.toString() + "/' target='_blank' class='mod-dev-link'><code>" + peer.ip.toString() + "</code></a></td>\n";
                 html += "        <td>" + (peer.model.length() > 0 ? ("<b>" + peer.model + "</b>") : "<span style='color:#718096;'>-</span>") + "</td>\n";
+                html += "        <td>" + (peer.moduleCount > 0 ? ("<b>" + String((int)peer.moduleCount) + "</b>") : "<span style='color:#718096;'>-</span>") + "</td>\n";
                 html += "        <td>" + (peer.version.length() > 0 ? ("<span class='badge badge-ok'>v" + peer.version + "</span>") : "<span style='color:#718096;'>-</span>") + "</td>\n";
                 html += "        <td style='text-align:right;'><a href='http://" + peer.ip.toString() + "/' target='_blank' class='btn btn-outline' style='padding:4px 12px;font-size:0.80rem;text-decoration:none;'>Open Dashboard ↗</a></td>\n";
                 html += "      </tr>\n";
@@ -1572,6 +1584,16 @@ private:
         html += "            var hrs = Math.floor(sec / 3600); sec %= 3600;\n";
         html += "            var mins = Math.floor(sec / 60);\n";
         html += "            el.textContent = (days > 0 ? (days + 'd ') : '') + hrs + 'h ' + mins + 'm';\n";
+        html += "          }\n";
+        html += "          el = document.getElementById('sysMqtt');\n";
+        html += "          if (el && sys.mqtt_enabled !== undefined) {\n";
+        html += "            if (!sys.mqtt_enabled) {\n";
+        html += "              el.innerHTML = \"<span style='color:#94a3b8;'>Not configured</span>\";\n";
+        html += "            } else if (sys.mqtt_connected) {\n";
+        html += "              el.innerHTML = \"<span style='color:#16a34a;font-weight:700;'>Connected</span>\";\n";
+        html += "            } else {\n";
+        html += "              el.innerHTML = \"<span style='color:#dc2626;font-weight:700;'>Disconnected</span>\";\n";
+        html += "            }\n";
         html += "          }\n";
         html += "        }\n";
         html += "        if (d.modules) {\n";
@@ -1896,9 +1918,10 @@ private:
             html += "            <div id='cVolt_" + String(c) + "'>" + (v > 0 ? (vCellStr + "V") : "--V") + "</div>\n";
             html += "            <div id='cTemp_" + String(c) + "' style='font-size:0.68rem;color:#cbd5e1;'>" + String(t, 1) + " °C</div>\n";
 
-            // SOH per cell (supported on US3000C)
-            bool isModelC = (stack.model == MODEL_US3000C || (stack.model != MODEL_US3000D && mod.cells[c].sohValid) || strstr(info.deviceName, "US3000C") != nullptr);
-            if (isModelC) {
+            // SOH per cell (supported on models with soh command, e.g. US3000C, US2000C)
+            const ModelProfile *prof = getModelProfile(stack.model);
+            bool showCellSoh = (prof->supportsSohCmd || mod.cells[c].sohValid);
+            if (showCellSoh) {
                 if (mod.cells[c].sohValid) {
                     if (mod.cells[c].sohCount > 0) {
                         html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.64rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: <b style='color:#ef4444;'>" + String(mod.cells[c].sohCount) + "</b></div>\n";
@@ -2315,6 +2338,9 @@ private:
                 if (stack.modelName[0] != '\0' && strcmp(stack.modelName, "Unknown") != 0) {
                     MDNS.addServiceTxt("pylon-smart", "tcp", "model", (const char*)stack.modelName);
                 }
+                if (stack.moduleCount > 0) {
+                    MDNS.addServiceTxt("pylon-smart", "tcp", "modules", String((int)stack.moduleCount).c_str());
+                }
                 ArduinoOTA.setHostname(effectiveHost.c_str());
             }
         }
@@ -2399,6 +2425,7 @@ private:
             json += "\"ip\":\"" + peers[i].ip.toString() + "\",";
             json += "\"port\":" + String(peers[i].port) + ",";
             json += "\"model\":\"" + peers[i].model + "\",";
+            json += "\"modules\":" + String((int)peers[i].moduleCount) + ",";
             json += "\"ver\":\"" + peers[i].version + "\"}";
         }
         json += "]";
@@ -2613,6 +2640,9 @@ private:
         json += ",\"wifi_ip\":\""; json += sys.wifiIp; json += "\"";
         json += ",\"wifi_mac\":\""; json += sys.wifiMac; json += "\"";
         json += ",\"wifi_status\":\""; json += sys.wifiStatus; json += "\"";
+        bool mqEn = prefs.getBool(NVS_KEY_MQTT_ENABLED, false);
+        json += ",\"mqtt_enabled\":"; json += (mqEn ? "true" : "false");
+        json += ",\"mqtt_connected\":"; json += (mqttClient.isConnected() ? "true" : "false");
         json += "}";
 
         json += "}";
@@ -2653,9 +2683,10 @@ private:
         html += cmdBtn("info");
         html += cmdBtn("bat");
         html += cmdBtn("pwr");
-        if (stack.model == MODEL_US3000D) {
+        const ModelProfile *prof = getModelProfile(stack.model);
+        if (prof->supportsEuro) {
             html += cmdBtn("euro");
-        } else {
+        } else if (prof->supportsSohCmd) {
             html += cmdBtn("soh");
         }
 
@@ -2747,21 +2778,21 @@ private:
                 safeSsid.replace("'", "\\'");
                 safeSsid.replace("\"", "&quot;");
 
-                html += "    <div onclick=\"selectWifi('" + safeSsid + "')\" style='padding:9px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-bottom:1px solid #edf2f7;transition:background 0.15s;' onmouseover=\"this.style.background='#e2e8f0'\" onmouseout=\"this.style.background='transparent'\">\n";
+                html += "    <div class='wifi-net-item' onclick=\"selectWifi('" + safeSsid + "')\">\n";
                 html += "      <div style='font-weight:700;font-size:0.88rem;color:var(--navy);display:flex;align-items:center;gap:6px;'>📶 " + net.ssid + " <span style='font-size:0.75rem;'>" + icon + "</span></div>\n";
                 html += "      <div style='font-size:0.80rem;font-weight:700;color:" + sigCol + ";'>" + String(net.rssi) + " dBm (" + String(pct) + "%)</div>\n";
                 html += "    </div>\n";
             }
             html += "  </div>\n";
         } else {
-            html += "  <div style='background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:0.85rem;color:#92400e;'>⚠️ No wireless networks found during scan. You can enter your SSID manually below.</div>\n";
+            html += "  <div class='alert-warn'>⚠️ No wireless networks found during scan. You can enter your SSID manually below.</div>\n";
         }
 
         html += "  <form method='POST' action='/save'>\n";
         html += "    <div style='margin-bottom:14px;'><label style='font-size:0.85rem;font-weight:600;'>WiFi Network Name (SSID):</label>\n";
-        html += "      <input type='text' id='ssidInput' name='ssid' required placeholder='Select from list above or type SSID' style='width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;'></div>\n";
+        html += "      <input type='text' id='ssidInput' name='ssid' required placeholder='Select from list above or type SSID' style='width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;margin-top:4px;'></div>\n";
         html += "    <div style='margin-bottom:18px;'><label style='font-size:0.85rem;font-weight:600;'>WiFi Password:</label>\n";
-        html += "      <input type='password' id='passInput' name='pass' placeholder='Enter WiFi password' style='width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;'></div>\n";
+        html += "      <input type='password' id='passInput' name='pass' placeholder='Enter WiFi password' style='width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;margin-top:4px;'></div>\n";
         html += "    <button type='submit' class='btn btn-primary' style='width:100%;padding:10px;font-size:0.95rem;justify-content:center;'>💾 Save and Connect</button>\n";
         html += "  </form>\n";
         html += "</div>\n";
@@ -2786,8 +2817,11 @@ private:
         prefs.putString("ssid", ssid);
         prefs.putString("pass", pass);
 
-        String html = "<!DOCTYPE html>\n<html>\n<body style='font-family:sans-serif;text-align:center;padding:50px;'>\n";
-        html += "  <h2 style='color:#77b243;'>Credentials Saved!</h2>\n";
+        String html = "<!DOCTYPE html>\n<html>\n<head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><style>"
+                      "body{font-family:sans-serif;text-align:center;padding:50px;background:#f4f6fa;color:#171c61;}"
+                      "@media(prefers-color-scheme:dark){body{background:#0b1120;color:#e2e8f0;}}"
+                      "</style></head>\n<body>\n";
+        html += "  <h2 style='color:#16a34a;'>Credentials Saved!</h2>\n";
         html += "  <p>Connecting to <b>" + ssid + "</b>... Restarting device...</p>\n";
         html += "  <script>setTimeout(function(){window.location.href='/';},10000);</script>\n";
         html += "</body>\n</html>\n";

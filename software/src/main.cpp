@@ -61,18 +61,25 @@ WebPortal portal(webServer, batteryStack, preferences, isApMode, triggerManualPo
 // =============================================================================
 // Helper Functions
 // =============================================================================
-void updateMdnsModelTxt() {
+void updateMdnsTxt() {
     static String lastPublishedModel = "";
-    if (WiFi.status() == WL_CONNECTED && batteryStack.modelName[0] != '\0' && strcmp(batteryStack.modelName, "Unknown") != 0) {
-        if (lastPublishedModel != batteryStack.modelName) {
-            lastPublishedModel = batteryStack.modelName;
-            MDNS.addServiceTxt("pylon-smart", "tcp", "model", (const char*)batteryStack.modelName);
+    static uint8_t lastPublishedModules = 0;
+    if (WiFi.status() == WL_CONNECTED) {
+        if (batteryStack.modelName[0] != '\0' && strcmp(batteryStack.modelName, "Unknown") != 0) {
+            if (lastPublishedModel != batteryStack.modelName) {
+                lastPublishedModel = batteryStack.modelName;
+                MDNS.addServiceTxt("pylon-smart", "tcp", "model", (const char*)batteryStack.modelName);
+            }
+        }
+        if (batteryStack.moduleCount > 0 && batteryStack.moduleCount != lastPublishedModules) {
+            lastPublishedModules = batteryStack.moduleCount;
+            MDNS.addServiceTxt("pylon-smart", "tcp", "modules", String((int)batteryStack.moduleCount).c_str());
         }
     }
 }
 
 void recordHistorySample() {
-    updateMdnsModelTxt();
+    updateMdnsTxt();
     if (!batteryStack.scrapeSuccess || batteryStack.moduleCount == 0) return;
     float stackCurr = 0.0f;
     float avgSoc = 0.0f;
@@ -228,6 +235,9 @@ bool connectToSta(const String &ssid, const String &pass, uint32_t timeoutMs = 2
         if (batteryStack.modelName[0] != '\0' && strcmp(batteryStack.modelName, "Unknown") != 0) {
             MDNS.addServiceTxt("pylon-smart", "tcp", "model", (const char*)batteryStack.modelName);
         }
+        if (batteryStack.moduleCount > 0) {
+            MDNS.addServiceTxt("pylon-smart", "tcp", "modules", String((int)batteryStack.moduleCount).c_str());
+        }
         setupOta(hostname);
 
         triggerNtpSync();
@@ -379,6 +389,9 @@ void loop() {
                 MDNS.addServiceTxt("pylon-smart", "tcp", "ver", FIRMWARE_VERSION);
                 if (batteryStack.modelName[0] != '\0' && strcmp(batteryStack.modelName, "Unknown") != 0) {
                     MDNS.addServiceTxt("pylon-smart", "tcp", "model", (const char*)batteryStack.modelName);
+                }
+                if (batteryStack.moduleCount > 0) {
+                    MDNS.addServiceTxt("pylon-smart", "tcp", "modules", String((int)batteryStack.moduleCount).c_str());
                 }
             }
             setLedWifi(true);

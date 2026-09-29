@@ -22,36 +22,75 @@ private:
     bool discoveryPublished = false;
     const BatteryStack *stackRef = nullptr;  // set on first publishState(); used by loop() to publish discovery right after reconnect
 
-    // Returns the HA device JSON fragment (shared across all sensors)
+    // Returns unique 4-character hex suffix from MAC address (e.g. "b016")
+    String getDeviceSuffix() const {
+        String mac = WiFi.macAddress();
+        mac.replace(":", "");
+        if (mac.length() >= 4) {
+            String suf = mac.substring(mac.length() - 4);
+            suf.toLowerCase();
+            return suf;
+        }
+        return "0000";
+    }
+
+    // Returns effective base state topic prefix (e.g. "homeassistant/sensor/pylontech_b016")
+    String getEffectiveTopicPrefix() const {
+        String suf = getDeviceSuffix();
+        if (topicPrefix == "homeassistant/sensor/pylontech") {
+            return "homeassistant/sensor/pylontech_" + suf;
+        }
+        return topicPrefix;
+    }
+
+    // Returns the HA device JSON fragment with unique device ID, device name, and configuration URL
     String deviceJson(const BatteryStack &stack) {
-        return "\"dev\":{\"ids\":[\"pylon_smart_monitor\"],\"name\":\"Pylon Smart Monitor\","
-               "\"mf\":\"Pylontech\",\"mdl\":\"" + String(stack.modelName) + "\","
-               "\"sw\":\"" + String(FIRMWARE_VERSION) + "\"}";
+        String suf = getDeviceSuffix();
+        String devName = "Pylon Smart Monitor (" + suf + ")";
+
+        String json = "\"dev\":{\"ids\":[\"pylon_smart_" + suf + "\"],"
+                      "\"name\":\"" + devName + "\","
+                      "\"mf\":\"Pylontech\","
+                      "\"mdl\":\"" + String(stack.modelName) + "\","
+                      "\"sw\":\"" + String(FIRMWARE_VERSION) + "\"";
+        if (WiFi.status() == WL_CONNECTED) {
+            String ip = WiFi.localIP().toString();
+            if (ip.length() > 0 && ip != "0.0.0.0") {
+                json += ",\"cu\":\"http://" + ip + "/\"";
+            }
+        }
+        json += "}";
+        return json;
     }
 
     // Publishes a single HA MQTT discovery config for a sensor
-    void pubSensor(const String &uniqueId, const String &name,
+    void pubSensor(const String &sensorKey, const String &name,
                    const String &stateTopic, const String &valTpl,
                    const String &devClass, const String &unit,
-                   const String &icon, const String &devJson) {
-        String topic = "homeassistant/sensor/pylontech_" + uniqueId + "/config";
+                   const String &icon, const String &devJson,
+                   int8_t precision = -1, const String &stateClass = "") {
+        String suf = getDeviceSuffix();
+        String topic = "homeassistant/sensor/pylontech_" + suf + "_" + sensorKey + "/config";
         String payload = "{\"name\":\"" + name +
                          "\",\"stat_t\":\"" + stateTopic +
                          "\",\"val_tpl\":\"" + valTpl +
-                         "\",\"uniq_id\":\"pylon_" + uniqueId + "\"";
-        if (devClass.length() > 0) payload += ",\"dev_cla\":\"" + devClass + "\"";
-        if (unit.length() > 0)     payload += ",\"unit_of_meas\":\"" + unit + "\"";
-        if (icon.length() > 0)     payload += ",\"icon\":\"" + icon + "\"";
+                         "\",\"uniq_id\":\"pylon_" + suf + "_" + sensorKey + "\"";
+        if (devClass.length() > 0)   payload += ",\"dev_cla\":\"" + devClass + "\"";
+        if (unit.length() > 0)       payload += ",\"unit_of_meas\":\"" + unit + "\"";
+        if (icon.length() > 0)       payload += ",\"icon\":\"" + icon + "\"";
+        if (stateClass.length() > 0) payload += ",\"stat_cla\":\"" + stateClass + "\"";
+        if (precision >= 0)          payload += ",\"sug_dsp_prc\":" + String(precision);
         payload += "," + devJson + "}";
         mqtt.publish(topic.c_str(), payload.c_str(), true);
     }
 
     // Overload without icon
-    void pubSensor(const String &uniqueId, const String &name,
+    void pubSensor(const String &sensorKey, const String &name,
                    const String &stateTopic, const String &valTpl,
                    const String &devClass, const String &unit,
-                   const String &devJson) {
-        pubSensor(uniqueId, name, stateTopic, valTpl, devClass, unit, "", devJson);
+                   const String &devJson,
+                   int8_t precision = -1, const String &stateClass = "") {
+        pubSensor(sensorKey, name, stateTopic, valTpl, devClass, unit, "", devJson, precision, stateClass);
     }
 
 public:
@@ -123,74 +162,75 @@ public:
         if (!mqtt.connected() || discoveryPublished) return;
 
         String dJson = deviceJson(stack);
-        String stackTopic = topicPrefix + "/state";
+        String effPrefix = getEffectiveTopicPrefix();
+        String stackTopic = effPrefix + "/state";
 
         // ── Stack-level sensors (single shared state topic) ───────────────────
-        pubSensor("voltage",  "Stack Voltage",       stackTopic, "{{ value_json.voltage }}", "voltage",  "V",  dJson);
-        pubSensor("current",  "Stack Current",       stackTopic, "{{ value_json.current }}", "current",  "A",  dJson);
-        pubSensor("power",    "Stack Power",         stackTopic, "{{ value_json.power }}",   "power",    "W",  dJson);
-        pubSensor("soc",      "Stack SOC",           stackTopic, "{{ value_json.soc }}",     "battery",  "%",  dJson);
-        pubSensor("soh",      "Stack SOH",           stackTopic, "{{ value_json.soh }}",     "",         "%",  "mdi:heart-pulse", dJson);
-        pubSensor("modules",  "Active Modules",      stackTopic, "{{ value_json.modules }}", "",         "",   "mdi:battery-heart-variant", dJson);
+        pubSensor("voltage", "Stack Voltage",  stackTopic, "{{ value_json.voltage }}", "voltage", "V", "", dJson, 2, "measurement");
+        pubSensor("current", "Stack Current",  stackTopic, "{{ value_json.current }}", "current", "A", "", dJson, 2, "measurement");
+        pubSensor("power",   "Stack Power",    stackTopic, "{{ value_json.power }}",   "power",   "W", "", dJson, 1, "measurement");
+        pubSensor("soc",     "Stack SOC",      stackTopic, "{{ value_json.soc }}",     "battery", "%", "", dJson, 0, "measurement");
+        pubSensor("soh",     "Stack SOH",      stackTopic, "{{ value_json.soh }}",     "",        "%", "mdi:heart-pulse", dJson, 0, "measurement");
+        pubSensor("modules", "Active Modules", stackTopic, "{{ value_json.modules }}", "",        "",  "mdi:battery-heart-variant", dJson, 0, "measurement");
 
         // ── Per-module sensors (each module has its own state topic) ──────────
         for (uint8_t m = 1; m <= MAX_MODULES; ++m) {
             if (!stack.modules[m].present) continue;
             String sm = String(m);
-            String modTopic = topicPrefix + "/mod" + sm + "/state";
+            String modTopic = effPrefix + "/mod" + sm + "/state";
             bool hasMaster = stack.isMaster && (m == stack.activeModuleIndex);
 
             // Numeric measurement sensors
-            pubSensor("mod" + sm + "_voltage",      "Module " + sm + " Voltage",
-                      modTopic, "{{ value_json.voltage }}",        "voltage",     "V",    dJson);
-            pubSensor("mod" + sm + "_current",      "Module " + sm + " Current",
-                      modTopic, "{{ value_json.current }}",        "current",     "A",    dJson);
-            pubSensor("mod" + sm + "_soc",          "Module " + sm + " State of Charge",
-                      modTopic, "{{ value_json.soc }}",            "battery",     "%",    dJson);
-            pubSensor("mod" + sm + "_temp",         "Module " + sm + " Temperature",
-                      modTopic, "{{ value_json.temp }}",           "temperature", "°C",   dJson);
-            pubSensor("mod" + sm + "_mos_temp",     "Module " + sm + " MOSFET Temperature",
-                      modTopic, "{{ value_json.mos_temp }}",       "temperature", "°C",   dJson);
-            pubSensor("mod" + sm + "_cell_high_v",  "Module " + sm + " Cell High Voltage",
-                      modTopic, "{{ value_json.cell_high_v }}",    "voltage",     "V",    dJson);
-            pubSensor("mod" + sm + "_cell_low_v",   "Module " + sm + " Cell Low Voltage",
-                      modTopic, "{{ value_json.cell_low_v }}",     "voltage",     "V",    dJson);
-            pubSensor("mod" + sm + "_cell_high_t",  "Module " + sm + " Cell High Temperature",
-                      modTopic, "{{ value_json.cell_high_t }}",    "temperature", "°C",   dJson);
-            pubSensor("mod" + sm + "_cell_low_t",   "Module " + sm + " Cell Low Temperature",
-                      modTopic, "{{ value_json.cell_low_t }}",     "temperature", "°C",   dJson);
-            pubSensor("mod" + sm + "_vspread",      "Module " + sm + " Volt Spread",
-                      modTopic, "{{ value_json.vspread }}",        "",            "mV",   "mdi:swap-vertical", dJson);
+            pubSensor("mod" + sm + "_voltage",     "Module " + sm + " Voltage",
+                      modTopic, "{{ value_json.voltage }}",        "voltage",     "V",   "",                   dJson, 3, "measurement");
+            pubSensor("mod" + sm + "_current",     "Module " + sm + " Current",
+                      modTopic, "{{ value_json.current }}",        "current",     "A",   "",                   dJson, 2, "measurement");
+            pubSensor("mod" + sm + "_soc",         "Module " + sm + " State of Charge",
+                      modTopic, "{{ value_json.soc }}",            "battery",     "%",   "",                   dJson, 0, "measurement");
+            pubSensor("mod" + sm + "_temp",        "Module " + sm + " Temperature",
+                      modTopic, "{{ value_json.temp }}",           "temperature", "°C",  "",                   dJson, 1, "measurement");
+            pubSensor("mod" + sm + "_mos_temp",    "Module " + sm + " MOSFET Temperature",
+                      modTopic, "{{ value_json.mos_temp }}",       "temperature", "°C",  "",                   dJson, 1, "measurement");
+            pubSensor("mod" + sm + "_cell_high_v", "Module " + sm + " Cell High Voltage",
+                      modTopic, "{{ value_json.cell_high_v }}",    "voltage",     "V",   "",                   dJson, 3, "measurement");
+            pubSensor("mod" + sm + "_cell_low_v",  "Module " + sm + " Cell Low Voltage",
+                      modTopic, "{{ value_json.cell_low_v }}",     "voltage",     "V",   "",                   dJson, 3, "measurement");
+            pubSensor("mod" + sm + "_cell_high_t", "Module " + sm + " Cell High Temperature",
+                      modTopic, "{{ value_json.cell_high_t }}",    "temperature", "°C",  "",                   dJson, 1, "measurement");
+            pubSensor("mod" + sm + "_cell_low_t",  "Module " + sm + " Cell Low Temperature",
+                      modTopic, "{{ value_json.cell_low_t }}",     "temperature", "°C",  "",                   dJson, 1, "measurement");
+            pubSensor("mod" + sm + "_vspread",     "Module " + sm + " Volt Spread",
+                      modTopic, "{{ value_json.vspread }}",        "",            "mV",  "mdi:swap-vertical",  dJson, 0, "measurement");
 
             // Status string sensors (enum)
-            pubSensor("mod" + sm + "_status",       "Module " + sm + " Status",
-                      modTopic, "{{ value_json.status }}",         "",            "",     "mdi:information-outline", dJson);
-            pubSensor("mod" + sm + "_volt_status",  "Module " + sm + " Battery Voltage Status",
-                      modTopic, "{{ value_json.volt_status }}",    "",            "",     "mdi:lightning-bolt", dJson);
-            pubSensor("mod" + sm + "_curr_status",  "Module " + sm + " Current Status",
-                      modTopic, "{{ value_json.curr_status }}",    "",            "",     "mdi:current-dc", dJson);
-            pubSensor("mod" + sm + "_temp_status",  "Module " + sm + " Temperature Status",
-                      modTopic, "{{ value_json.temp_status }}",    "",            "",     "mdi:thermometer", dJson);
-            pubSensor("mod" + sm + "_bat_t_status", "Module " + sm + " Battery Temperature Status",
-                      modTopic, "{{ value_json.bat_t_status }}",   "",            "",     "mdi:thermometer-alert", dJson);
-            pubSensor("mod" + sm + "_mos_status",   "Module " + sm + " MOSFET Temperature Status",
-                      modTopic, "{{ value_json.mos_status }}",     "",            "",     "mdi:chip", dJson);
+            pubSensor("mod" + sm + "_status",      "Module " + sm + " Status",
+                      modTopic, "{{ value_json.status }}",         "",            "",    "mdi:information-outline", dJson);
+            pubSensor("mod" + sm + "_volt_status", "Module " + sm + " Battery Voltage Status",
+                      modTopic, "{{ value_json.volt_status }}",    "",            "",    "mdi:lightning-bolt", dJson);
+            pubSensor("mod" + sm + "_curr_status", "Module " + sm + " Current Status",
+                      modTopic, "{{ value_json.curr_status }}",    "",            "",    "mdi:current-dc",     dJson);
+            pubSensor("mod" + sm + "_temp_status", "Module " + sm + " Temperature Status",
+                      modTopic, "{{ value_json.temp_status }}",    "",            "",    "mdi:thermometer",    dJson);
+            pubSensor("mod" + sm + "_bat_t_status","Module " + sm + " Battery Temperature Status",
+                      modTopic, "{{ value_json.bat_t_status }}",   "",            "",    "mdi:thermometer-alert", dJson);
+            pubSensor("mod" + sm + "_mos_status",  "Module " + sm + " MOSFET Temperature Status",
+                      modTopic, "{{ value_json.mos_status }}",     "",            "",    "mdi:chip",           dJson);
 
             // SOH per module (all modules report it if stats are valid)
-            pubSensor("mod" + sm + "_soh",          "Module " + sm + " State of Health",
-                      modTopic, "{{ value_json.soh }}",            "",            "%",    "mdi:heart-pulse", dJson);
+            pubSensor("mod" + sm + "_soh",         "Module " + sm + " State of Health",
+                      modTopic, "{{ value_json.soh }}",            "",            "%",   "mdi:heart-pulse",    dJson, 0, "measurement");
 
             // Capacity & Energy Throughput — only master module
             if (hasMaster) {
                 pubSensor("mod" + sm + "_cap_ah",   "Module " + sm + " Capacity Throughput",
-                          modTopic, "{{ value_json.cap_ah }}",     "energy_storage", "Ah", "mdi:battery-arrow-up", dJson);
+                          modTopic, "{{ value_json.cap_ah }}",     "energy_storage", "Ah", "mdi:battery-arrow-up", dJson, 0, "total_increasing");
                 pubSensor("mod" + sm + "_energy_wh","Module " + sm + " Energy Throughput",
-                          modTopic, "{{ value_json.energy_wh }}", "energy",       "Wh",  "mdi:flash", dJson);
+                          modTopic, "{{ value_json.energy_wh }}", "energy",       "Wh",  "mdi:flash",          dJson, 0, "total_increasing");
             }
         }
 
         discoveryPublished = true;
-        consoleLog.logInfo("Home Assistant MQTT discovery published");
+        consoleLog.logInfo("Home Assistant MQTT discovery published (Device: " + getDeviceHostname(prefs) + ", Suffix: " + getDeviceSuffix() + ")");
     }
 
     void publishState(const BatteryStack &stack) {
@@ -236,7 +276,8 @@ public:
         stackJson += "\"modules\":"  + String(stack.moduleCount);
         stackJson += "}";
 
-        String stackTopic = topicPrefix + "/state";
+        String effPrefix = getEffectiveTopicPrefix();
+        String stackTopic = effPrefix + "/state";
         mqtt.publish(stackTopic.c_str(), stackJson.c_str(), false);
 
         // ── Per-module state (one MQTT publish per module) ────────────────────
@@ -248,20 +289,28 @@ public:
 
             String json = "{";
             bool first = true;
+
             auto addF = [&](const char *key, float val, int dec) {
-                if (!first) json += ","; first = false;
-                json += "\""; json += key; json += "\":"; json += String(val, dec);
+                if (!first) json += ",";
+                first = false;
+                json += "\""; json += key; json += "\":";
+                json += String(val, dec);
             };
             auto addI = [&](const char *key, long val) {
-                if (!first) json += ","; first = false;
-                json += "\""; json += key; json += "\":"; json += String(val);
+                if (!first) json += ",";
+                first = false;
+                json += "\""; json += key; json += "\":";
+                json += String(val);
             };
             auto addS = [&](const char *key, const char *val) {
-                if (!first) json += ","; first = false;
-                json += "\""; json += key; json += "\":\""; json += val; json += "\"";
+                if (!first) json += ",";
+                first = false;
+                json += "\""; json += key; json += "\":\"";
+                json += val; json += "\"";
             };
             auto addNull = [&](const char *key) {
-                if (!first) json += ","; first = false;
+                if (!first) json += ",";
+                first = false;
                 json += "\""; json += key; json += "\":null";
             };
 
@@ -320,13 +369,16 @@ public:
                 addI("vspread", vSpread);
 
                 // Status strings
-                addS("status",      mod.power.baseState[0]    ? mod.power.baseState    : "Unknown");
-                addS("volt_status", mod.power.voltState[0]    ? mod.power.voltState    : "Unknown");
-                addS("curr_status", mod.power.currState[0]    ? mod.power.currState    : "Unknown");
-                addS("temp_status", mod.power.tempState[0]    ? mod.power.tempState    : "Unknown");
-                // Battery Temperature Status: same as Temperature Status for Pylontech protocol
-                addS("bat_t_status",mod.power.tempState[0]    ? mod.power.tempState    : "Unknown");
-                addS("mos_status",  mod.power.mosTempState[0] ? mod.power.mosTempState : "Unknown");
+                const char *vSt  = mod.power.voltState[0]    ? mod.power.voltState    : (mod.power.batVoltState[0] ? mod.power.batVoltState : "Unknown");
+                const char *tSt  = mod.power.tempState[0]    ? mod.power.tempState    : (mod.power.batTempState[0] ? mod.power.batTempState : "Unknown");
+                const char *btSt = mod.power.batTempState[0] ? mod.power.batTempState : (mod.power.tempState[0]    ? mod.power.tempState    : "Unknown");
+
+                addS("status",       mod.power.baseState[0]    ? mod.power.baseState    : "Unknown");
+                addS("volt_status",  vSt);
+                addS("curr_status",  mod.power.currState[0]    ? mod.power.currState    : "Unknown");
+                addS("temp_status",  tSt);
+                addS("bat_t_status", btSt);
+                addS("mos_status",   mod.power.mosTempState[0] ? mod.power.mosTempState : "Unknown");
             }
 
             // SOH (all modules, when stats are available)
@@ -343,7 +395,7 @@ public:
 
             json += "}";
 
-            String modTopic = topicPrefix + "/mod" + sm + "/state";
+            String modTopic = effPrefix + "/mod" + sm + "/state";
             mqtt.publish(modTopic.c_str(), json.c_str(), false);
         }
     }

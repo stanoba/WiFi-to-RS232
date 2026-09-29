@@ -3,17 +3,66 @@
 #include "Config.h"
 
 enum BatteryModel {
-    MODEL_UNKNOWN = 0,
-    MODEL_US3000C = 1,
-    MODEL_US3000D = 2
+    MODEL_UNKNOWN  = 0,
+    MODEL_US2000   = 1,
+    MODEL_US2000C  = 2,
+    MODEL_US3000   = 3,
+    MODEL_US3000C  = 4,
+    MODEL_US3000D  = 5,
+    MODEL_UP5000   = 6,
+    MODEL_FORCE_L1 = 7,
+    MODEL_FORCE_L2 = 8
 };
 
-inline const char* modelToString(BatteryModel model) {
-    switch (model) {
-        case MODEL_US3000C: return "US3000C";
-        case MODEL_US3000D: return "US3000D";
-        default: return "Unknown";
+struct ModelProfile {
+    BatteryModel model;
+    const char*  name;                // Display model name (e.g. "US3000C")
+    const char*  matchSubstrings[4];  // Match keywords in info response
+    bool         supportsEuro;        // Supports 'euro' command (e.g. Model D)
+    bool         supportsSohCmd;      // Supports 'soh' command (e.g. Model C, US2000C)
+    bool         slaveSupportsStat;   // Whether slave modules accept 'stat <n>'
+    bool         slaveSupportsInfo;   // Whether slave modules accept 'info <n>'
+    bool         slaveSupportsSoh;    // Whether slave modules accept 'soh <n>'
+    bool         hasMosfetTemp;       // Expected to have hardware MOSFET temp
+    uint8_t      defaultCellCount;    // Default cell count (usually 15, UP5000 is 16)
+};
+
+static const ModelProfile MODEL_REGISTRY[] = {
+    { MODEL_US3000C,  "US3000C",  {"US3000C",  "3000C",   nullptr, nullptr}, false, true,  true,  true,  true,  false, 15 },
+    { MODEL_US3000D,  "US3000D",  {"US3000D",  "3000D",   nullptr, nullptr}, true,  false, false, false, false, true,  15 },
+    { MODEL_US2000C,  "US2000C",  {"US2000C",  "2000C",   nullptr, nullptr}, false, true,  true,  true,  true,  false, 15 },
+    { MODEL_US2000,   "US2000",   {"US2000",   "2000B",   "2000",  nullptr}, false, false, true,  true,  false, false, 15 },
+    { MODEL_US3000,   "US3000",   {"US3000",   "3000B",   nullptr, nullptr}, false, false, true,  true,  false, false, 15 },
+    { MODEL_UP5000,   "UP5000",   {"UP5000",   "5000",    nullptr, nullptr}, false, true,  true,  true,  true,  false, 16 },
+    { MODEL_FORCE_L1, "Force-L1", {"Force-L1", "FORCEL1", nullptr, nullptr}, false, true,  false, false, false, false, 15 },
+    { MODEL_FORCE_L2, "Force-L2", {"Force-L2", "FORCEL2", nullptr, nullptr}, false, true,  false, false, false, false, 15 },
+};
+
+inline const ModelProfile* getModelProfile(BatteryModel model) {
+    for (size_t i = 0; i < sizeof(MODEL_REGISTRY) / sizeof(MODEL_REGISTRY[0]); ++i) {
+        if (MODEL_REGISTRY[i].model == model) return &MODEL_REGISTRY[i];
     }
+    static const ModelProfile UNKNOWN_PROFILE = { MODEL_UNKNOWN, "Unknown", {nullptr}, false, false, false, false, false, false, 15 };
+    return &UNKNOWN_PROFILE;
+}
+
+inline const ModelProfile* detectModelProfile(const char* deviceNameOrInfo) {
+    if (!deviceNameOrInfo || deviceNameOrInfo[0] == '\0') return getModelProfile(MODEL_UNKNOWN);
+    String s(deviceNameOrInfo);
+    s.toUpperCase();
+    for (size_t i = 0; i < sizeof(MODEL_REGISTRY) / sizeof(MODEL_REGISTRY[0]); ++i) {
+        for (int k = 0; k < 4; ++k) {
+            const char* sub = MODEL_REGISTRY[i].matchSubstrings[k];
+            if (sub != nullptr && s.indexOf(sub) >= 0) {
+                return &MODEL_REGISTRY[i];
+            }
+        }
+    }
+    return getModelProfile(MODEL_UNKNOWN);
+}
+
+inline const char* modelToString(BatteryModel model) {
+    return getModelProfile(model)->name;
 }
 
 struct CellInfo {
@@ -75,8 +124,8 @@ struct ModulePower {
     char     currState[16] = {0};
     char     tempState[16] = {0};
     char     mosTempState[16] = {0};
-    char     batVoltState[16] = {0};   // B.V.St  (Battery Voltage Status — tabular pwr column 15/19)
-    char     batTempState[16] = {0};   // B.T.St  (Battery Temperature Status — tabular pwr column 16/20)
+    char     batVoltState[16] = {0};   // B.V.St  (Battery Voltage Status — tabular pwr column)
+    char     batTempState[16] = {0};   // B.T.St  (Battery Temperature Status — tabular pwr column)
     char     sohState[16] = {0};
     char     timestamp[32] = {0};
     bool     valid = false;
@@ -141,9 +190,8 @@ inline int16_t getEffectiveSoh(const ModuleStats &st) {
 
 inline float getDischargedCapAh(const ModuleStats &st, BatteryModel stackModel = MODEL_UNKNOWN) {
     if (!st.valid) return 0.0f;
-    // Model D reports Dsg Cap directly in Ah (e.g. 133958 Ah for 2013 cycles).
-    // Model C reports Dsg Cap in mAh (e.g. 27670648 mAh -> 27670.6 Ah for 373 cycles).
-    if (stackModel == MODEL_US3000D || st.chargeSecs > 0) {
+    const ModelProfile* prof = getModelProfile(stackModel);
+    if (prof->supportsEuro || stackModel == MODEL_US3000D || st.chargeSecs > 0) {
         return (float)st.dischargedCapMah;
     }
     if (st.dischargedCapMah > 5000000 || st.coulombMc > 0) {
