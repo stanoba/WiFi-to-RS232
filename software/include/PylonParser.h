@@ -223,16 +223,19 @@ public:
                 } else if (key.indexOf("Mos") >= 0 && key.indexOf("Temp") >= 0 &&
                            (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0)) {
                     strncpy(p.mosTempState, val.c_str(), sizeof(p.mosTempState) - 1);
-                } else if ((key.indexOf("Volt") >= 0 || key.indexOf("Bat") >= 0) &&
+                } else if ((key.indexOf("Volt") >= 0) &&
                            (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0) &&
                            key.indexOf("Mos") == -1 && key.indexOf("Curr") == -1 &&
-                           key.indexOf("Temp") == -1 && key.indexOf("High") == -1 &&
-                           key.indexOf("Low") == -1) {
+                           key.indexOf("Temp") == -1 && key.indexOf("Tmpr") == -1 &&
+                           key.indexOf("High") == -1 && key.indexOf("Low") == -1 &&
+                           key.indexOf("Soh") == -1 && key.indexOf("Coul") == -1 &&
+                           key.indexOf("Pwr") == -1) {
                     strncpy(p.voltState, val.c_str(), sizeof(p.voltState) - 1);
                 } else if (key.indexOf("Curr") >= 0 &&
                            (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0)) {
                     strncpy(p.currState, val.c_str(), sizeof(p.currState) - 1);
-                } else if (key.indexOf("Temp") >= 0 && key.indexOf("Mos") == -1 &&
+                } else if ((key.indexOf("Temp") >= 0 || key.indexOf("Tmpr") >= 0) &&
+                           key.indexOf("Mos") == -1 &&
                            (key.indexOf("Status") >= 0 || key.indexOf("State") >= 0) &&
                            key.indexOf("High") == -1 && key.indexOf("Low") == -1) {
                     strncpy(p.tempState, val.c_str(), sizeof(p.tempState) - 1);
@@ -613,6 +616,16 @@ public:
                 if (t[i] == "Y" || t[i] == "N") {
                     c.balance = (t[i] == "Y");
                 }
+            }
+            // bat columns: idx volt curr tempr baseState voltState currState tempState SOC% coulomb mAH BAL
+            // Extract status strings (t[4..7]) as fallback for ModulePower when pwr didn't provide them.
+            // All cells in a normal module report the same state — use the first cell parsed.
+            if (cellsParsed == 0 && t.size() >= 8) {
+                ModulePower &p = mod.power;
+                if (p.baseState[0] == '\0') strncpy(p.baseState, t[4].c_str(), sizeof(p.baseState) - 1);
+                if (p.voltState[0] == '\0') strncpy(p.voltState, t[5].c_str(), sizeof(p.voltState) - 1);
+                if (p.currState[0] == '\0') strncpy(p.currState, t[6].c_str(), sizeof(p.currState) - 1);
+                if (p.tempState[0] == '\0') strncpy(p.tempState, t[7].c_str(), sizeof(p.tempState) - 1);
             }
             cellsParsed++;
         }
