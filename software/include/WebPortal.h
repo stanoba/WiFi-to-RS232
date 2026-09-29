@@ -254,6 +254,15 @@ R"rawliteral(<script>
   if(!canvas) return;
   var ctx = canvas.getContext('2d');
 
+  function isSocVisible() {
+    var el = document.getElementById('chkSoc');
+    return el ? el.checked : true;
+  }
+  function isCurrVisible() {
+    var el = document.getElementById('chkCurr');
+    return el ? el.checked : true;
+  }
+
   window.setChartRange = function(sec, btn) {
     currentRange = sec;
     var btns = document.querySelectorAll('.chart-btn');
@@ -316,8 +325,8 @@ R"rawliteral(<script>
       return;
     }
 
-    var showSoc = document.getElementById('chkSoc') ? document.getElementById('chkSoc').checked : true;
-    var showCurr = document.getElementById('chkCurr') ? document.getElementById('chkCurr').checked : true;
+    var showSoc = isSocVisible();
+    var showCurr = isCurrVisible();
 
     var padL = 48, padR = 48, padT = 20, padB = 26;
     var plotW = w - padL - padR;
@@ -509,6 +518,13 @@ R"rawliteral(<script>
     hoverIdx = bestIdx;
     drawChart();
 
+    var showSoc = isSocVisible();
+    var showCurr = isCurrVisible();
+    if(!showSoc && !showCurr) {
+      tooltip.style.display = 'none';
+      return;
+    }
+
     var p = chartData[hoverIdx];
     var timeStr = formatTime(p.t, true);
     var currStr = (p.c >= 0 ? '+' : '') + p.c.toFixed(2) + ' A';
@@ -520,6 +536,7 @@ R"rawliteral(<script>
 
     var tipX = mouseX + 12;
     if(tipX + 140 > rect.width) tipX = mouseX - 150;
+    if(tipX < 10) tipX = 10;
     tooltip.style.left = tipX + 'px';
     tooltip.style.top = '25px';
     tooltip.style.display = 'block';
@@ -531,9 +548,12 @@ R"rawliteral(<script>
     tooltip.style.display = 'none';
     drawChart();
   });
+  canvas.addEventListener('touchstart', function(e){
+    if(e.touches.length > 0) updateHover(e.touches[0].clientX);
+  }, { passive: true });
   canvas.addEventListener('touchmove', function(e){
     if(e.touches.length > 0) updateHover(e.touches[0].clientX);
-  });
+  }, { passive: true });
   canvas.addEventListener('touchend', function(){
     hoverIdx = -1;
     tooltip.style.display = 'none';
