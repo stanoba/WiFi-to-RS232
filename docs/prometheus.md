@@ -100,7 +100,7 @@ System health metrics from the ESP32 microcontroller itself. All metrics are pre
 | `esp32_uptime_seconds` | Counter | s | Seconds since last reboot |
 | `esp32_cpu_usage_percent` | Gauge | % | CPU utilization (averaged over 500 ms window) |
 | `esp32_cpu_temperature_celsius` | Gauge | °C | Internal chip temperature from built-in sensor |
-| `esp32_cpu_freq_mhz` | Gauge | MHz | CPU clock frequency |
+| `esp32_cpu_frequency_mhz` | Gauge | MHz | CPU clock frequency |
 
 #### Heap Memory
 | Metric | Type | Unit | Description |
@@ -123,63 +123,63 @@ System health metrics from the ESP32 microcontroller itself. All metrics are pre
 |:---|:---:|:---|:---|
 | `esp32_flash_size_bytes` | Gauge | B | Total flash chip capacity |
 | `esp32_sketch_size_bytes` | Gauge | B | Compiled firmware binary size |
+| `esp32_sketch_free_bytes` | Gauge | B | Free flash space available for OTA updates |
 
 ---
 
-## 3. Example Prometheus Metrics Output
+## 3. Ready-to-Use Grafana Dashboard
 
-```text
-# HELP pylontech_scrape_success Whether the last serial scrape was successful
-# TYPE pylontech_scrape_success gauge
-pylontech_scrape_success 1
+A complete, production-grade Grafana dashboard is included with this repository:
+📁 **[`integrations/grafana/pylontech-smart-monitor-dashboard.json`](../integrations/grafana/pylontech-smart-monitor-dashboard.json)**
 
-# HELP pylontech_scrape_duration_seconds Duration of serial scrape in seconds
-# TYPE pylontech_scrape_duration_seconds gauge
-pylontech_scrape_duration_seconds 0.842
+### Dashboard Features:
+1. **Dynamic Templating Variables:**
+   - `$datasource` — Selects Prometheus or VictoriaMetrics data source.
+   - `$instance` — Dynamically switches between multiple Pylon Smart Monitors on the network.
+   - `$module` — Filters individual battery modules (1..16 or All).
+2. **⚡ Battery Stack Key Performance Indicators:**
+   - Stack Voltage, Total Current (colorized by charge/discharge), Total Power, Average SOC, Worst Cell Spread (ΔV in mV), Active Modules count, BMS Scrape Status, and ESP32 Free Heap.
+3. **🔋 Battery Modules & Stack Telemetry:**
+   - Stack Total Power & Current (dual Y-axis timeseries: W on left, A on right).
+   - Module SOC (%) and Module Terminal Voltages (V).
+   - Module & MOSFET Temperatures (°C with distinct dashed line styling for MOSFETs).
+4. **🔬 Cell-Level Voltages, Balancing & Spread:**
+   - Individual Cell Voltage Bar Gauge (15 cells per module with LiFePO4 safety thresholds).
+   - Per-Module Cell Spread (ΔV in mV) timeseries for early detection of cell imbalance.
+5. **📈 Battery Lifetime, Health & Events:**
+   - SOH (%) degradation tracking, Battery Cycle Count, Lifetime Energy Throughput (kWh/Wh), Round-Trip Efficiency (%), and BMS Alarm & Protection Event counters.
+6. **🛠️ Pylon Smart Monitor (ESP32) Diagnostics & Resources:**
+   - CPU Load (%) & Internal Chip Temperature (°C) gauges.
+   - Free Heap, Min Free Watermark & Max Alloc Block (memory leak & fragmentation tracker).
+   - WiFi RSSI (dBm) & Link Quality (%).
+   - RS232 Serial Scrape Duration (s) & Hardware/Battery Inventory Tables.
 
-# HELP pylontech_modules_detected Number of active battery modules
-# TYPE pylontech_modules_detected gauge
-pylontech_modules_detected 1
-
-# HELP pylontech_module_info Battery module metadata
-# TYPE pylontech_module_info gauge
-pylontech_module_info{module="6",model="US3000C",barcode="PY240518C7K81942",board="H",main_soft="2.8",soft="2.8"} 1
-
-# HELP pylontech_voltage_millivolts Module overall voltage
-# TYPE pylontech_voltage_millivolts gauge
-pylontech_voltage_millivolts{module="6"} 49820
-
-# HELP pylontech_current_milliamps Module overall current
-# TYPE pylontech_current_milliamps gauge
-pylontech_current_milliamps{module="6"} -1420
-
-# HELP pylontech_soc_percent Module State of Charge percent
-# TYPE pylontech_soc_percent gauge
-pylontech_soc_percent{module="6"} 62
-
-# HELP pylontech_cell_voltage_millivolts Individual cell voltage in millivolts
-# TYPE pylontech_cell_voltage_millivolts gauge
-pylontech_cell_voltage_millivolts{module="6",cell="0"} 3321
-pylontech_cell_voltage_millivolts{module="6",cell="1"} 3322
-...
-```
+### How to Import into Grafana:
+1. In Grafana, navigate to **Dashboards** → **New** → **Import**.
+2. Upload [`integrations/grafana/pylontech-smart-monitor-dashboard.json`](../integrations/grafana/pylontech-smart-monitor-dashboard.json) or paste its JSON content.
+3. Select your Prometheus data source when prompted.
+4. Click **Import**.
 
 ---
 
-## 4. Useful PromQL Query Examples for Grafana
+## 4. Useful PromQL Query Examples
 
 | Query Purpose | PromQL Expression |
 |:---|:---|
 | **Pack Voltage (V)** | `pylontech_voltage_millivolts / 1000` |
 | **Total Stack Current (A)** | `sum(pylontech_current_milliamps) / 1000` |
-| **Total Stack Power (W)** | `(pylontech_voltage_millivolts / 1000) * (pylontech_current_milliamps / 1000)` |
-| **Cell Voltage Delta (mV)** | `max(pylontech_cell_voltage_millivolts) by (module) - min(pylontech_cell_voltage_millivolts) by (module)` |
-| **BMS Temperature (°C)** | `pylontech_temperature_millicelsius / 1000` |
-| **Active Balancing Cells** | `sum(pylontech_cell_balance) by (module)` |
-| **Cumulative Discharged Capacity (Ah)** | `pylontech_discharged_capacity_mah_total / 1000` |
+| **Total Stack Power (W)** | `sum(pylontech_voltage_millivolts * pylontech_current_milliamps) / 1000000` |
+| **Average SOC (%)** | `avg(pylontech_soc_percent)` |
+| **Worst Cell Spread (mV)** | `max(pylontech_cell_voltage_millivolts) - min(pylontech_cell_voltage_millivolts)` |
+| **Per-Module Cell Delta (mV)** | `max by (module) (pylontech_cell_voltage_millivolts) - min by (module) (pylontech_cell_voltage_millivolts)` |
+| **Module Temperature (°C)** | `pylontech_temperature_millicelsius / 1000` |
+| **MOSFET Temperature (°C)** | `pylontech_mosfet_temperature_millicelsius / 1000` |
+| **Active Balancing Cells** | `sum by (module) (pylontech_cell_balance)` |
+| **Energy Throughput (kWh)** | `pylontech_euro_energy_throughput_watthours_total / 1000` |
 | **ESP32 Free Heap (KB)** | `esp32_heap_free_bytes / 1024` |
 | **ESP32 Heap Fragmentation (%)** | `esp32_heap_fragmentation_percent` |
 | **ESP32 CPU Load (%)** | `esp32_cpu_usage_percent` |
 | **ESP32 Chip Temperature (°C)** | `esp32_cpu_temperature_celsius` |
 | **ESP32 WiFi Signal (%)** | `esp32_wifi_signal_percent` |
+| **RS232 Scrape Duration (s)** | `pylontech_scrape_duration_seconds` |
 | **ESP32 Uptime (hours)** | `esp32_uptime_seconds / 3600` |

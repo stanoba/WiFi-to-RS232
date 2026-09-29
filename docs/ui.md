@@ -11,7 +11,7 @@ Live battery telemetry overview organized into modular Title Case sections with 
 - **📈 24-Hour Telemetry History** — Zero-dependency HTML5 Canvas chart with 1h/6h/12h/24h range selector, area gradient fill for SOC (%), red line curve and unified tooltip indicator for Current (A) with auto-scaling right Y-axis. Voltage was streamlined out to minimize memory footprint.
 - **🔋 Battery Modules Detail** — Module ID, Device Model, Voltage, Current, SOC, Spread, Pack Temp, MOSFET Temp, Base State, Barcode.
 - **⚙️ System Status & Diagnostics** — Symmetrical 3-column live grid: Hostname, IP, WiFi signal & SSID, battery link status, active units, MQTT status, uptime, free RAM & fragmentation, CPU load & temperature, reset reason, chip model & flash size.
-- **🌐 Pylon Smart Monitors on Network** — Automatic background mDNS discovery card that displays live peer devices detected on the LAN, including hostname, IP address, battery model, firmware version, and one-click navigation links.
+- **🌐 Pylon Smart Monitors on Network** — Automatic background mDNS discovery card that displays live peer devices detected on the LAN, including hostname, IP address, battery model, connected module count, firmware version, and one-click navigation links.
 
 | Light Theme | Dark Theme |
 |:---:|:---:|

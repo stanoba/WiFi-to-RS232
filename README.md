@@ -16,13 +16,13 @@ Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (
 - **19" Rack Battery Visualization** — cell bargraphs with dynamic thermal gradient and BMS alarm counters.
 - **Time Synchronization & Timezones (NTP)** with 22 worldwide cities and automatic DST.
 - **Network & Static IP Configuration** directly from the Web UI.
-- **Home Assistant MQTT Integration** with Auto-Discovery.
+- **Home Assistant MQTT Integration** with Auto-Discovery, device isolation via MAC suffixes, and 3-decimal display precision for cell voltages.
 - **REST JSON API** — live telemetry, historical time-series, and ESP32 system diagnostics.
-- **Prometheus Exporter** — full battery and ESP32 system metrics at `/metrics`.
+- **Prometheus Exporter & Grafana Dashboard** — full battery and ESP32 system metrics at `/metrics` with a ready-to-import [Grafana dashboard](integrations/grafana/pylontech-smart-monitor-dashboard.json).
 - **Security** — optional HTTP Basic Auth and Bearer Token for REST API.
 - **Standalone AP Mode** — portable field diagnostics without a home network.
 - **Live RS232 Console** — raw `TX >>` / `RX <<` log with quick command buttons.
-- **mDNS Peer Discovery** — automatically discovers other Pylon Smart Monitors on the network.
+- **mDNS Peer Discovery** — automatically discovers other Pylon Smart Monitors on the network with module counts and live links.
 - **Over-The-Air (OTA) Updates** — browser upload or PlatformIO network OTA.
 - **Hardware Status LEDs** — WiFi (`CONN`) and Serial (`SER`) activity indicators.
 
@@ -104,6 +104,7 @@ pio device monitor -b 115200
 | **[`docs/ui.md`](docs/ui.md)** | Web interface guide with screenshots |
 | **[`docs/api.md`](docs/api.md)** | REST API reference, endpoint schemas, integration examples |
 | **[`docs/prometheus.md`](docs/prometheus.md)** | Prometheus metrics reference and Grafana PromQL recipes |
+| **[`integrations/grafana/`](integrations/grafana/pylontech-smart-monitor-dashboard.json)** | Ready-to-import Grafana dashboard template for Prometheus |
 | **[`software/README.md`](software/README.md)** | Firmware build, configuration, and OTA update guide |
 
 ---
