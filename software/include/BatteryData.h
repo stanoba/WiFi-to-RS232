@@ -75,6 +75,8 @@ struct ModulePower {
     char     currState[16] = {0};
     char     tempState[16] = {0};
     char     mosTempState[16] = {0};
+    char     batVoltState[16] = {0};   // B.V.St  (Battery Voltage Status — tabular pwr column 15/19)
+    char     batTempState[16] = {0};   // B.T.St  (Battery Temperature Status — tabular pwr column 16/20)
     char     sohState[16] = {0};
     char     timestamp[32] = {0};
     bool     valid = false;
