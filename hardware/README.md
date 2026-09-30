@@ -20,6 +20,10 @@ Custom hardware shield designed for the **Wemos D1 Mini (ESP32 / ESP8266)** form
   - **Pin 3:** Pylontech TX (Console output $\rightarrow$ MAX3232 R1IN $\rightarrow$ ESP32 RX / GPIO23)
   - **Pin 6:** Pylontech RX (Console input $\leftarrow$ MAX3232 T1OUT $\leftarrow$ ESP32 TX / GPIO5)
   - **Pin 8:** Ground (GND)
+
+> [!WARNING]
+> **Never connect ESP32 GPIO pins directly to the Pylontech Console port!**
+> The Pylontech Console port operates with standard RS232 levels ($\pm 12\text{ V}$). Connecting 3.3V microcontroller pins directly will destroy the ESP32. The onboard MAX3232 level shifter is required.
 - **Status LEDs (Active-LOW with current-limiting resistors):**
   - **`CONN` LED (D3 / GPIO17):** WiFi connectivity status (solid ON when connected, blinking when searching or in AP setup mode).
   - **`SER` LED (D4 / GPIO16):** Serial port TX/RX pulse activity indicator.

@@ -120,6 +120,9 @@ html.dark .switch-wrap:hover{background:#283548;border-color:#475569;}
 .switch input:checked + .switch-slider:before{background-color:#ffffff;transform:translateX(16px);box-shadow:0 1px 3px rgba(0,0,0,0.25);}
 html.dark .switch-slider{background-color:#334155;border-color:#475569;}
 html.dark .switch-slider:before{background-color:#94a3b8;}
+.poll-dot{display:inline-block;font-size:0.86rem;line-height:1;margin-right:2px;transition:color .2s,opacity .2s;}
+.poll-dot.active{color:#f59e0b!important;animation:pollDotFade 1s infinite alternate ease-in-out;}
+@keyframes pollDotFade{0%{opacity:1;color:#f59e0b;}100%{opacity:0.25;color:#f59e0b;}}
 .theme-switch{display:inline-flex;align-items:center;background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:20px;padding:2px;gap:2px;}
 .theme-btn{background:transparent;border:none;border-radius:16px;padding:4px 7px;display:inline-flex;align-items:center;justify-content:center;color:#64748b;cursor:pointer;transition:all 0.15s;}
 .theme-btn:hover{color:#0f172a;}
@@ -685,6 +688,12 @@ public:
             PrometheusExporter::generateMetrics(stack, server);
         });
 
+        // Live Status API for universal navbar polling indicator
+        server.on("/api/status", [this]() {
+            if (!checkWebAuth()) return;
+            server.send(200, "application/json", "{\"polling\":" + String(pylonSerial.isPolling() ? "true" : "false") + ",\"paused\":" + String(isPollingPaused ? "true" : "false") + "}");
+        });
+
         // REST JSON API
         server.on("/api/data", [this]() {
             if (!checkApiAuth()) return;
@@ -731,6 +740,8 @@ public:
 
         server.on("/log/raw", [this]() {
             if (!checkWebAuth()) return;
+            server.sendHeader("X-Bms-Polling", pylonSerial.isPolling() ? "1" : "0");
+            server.sendHeader("X-Bms-Paused", isPollingPaused ? "1" : "0");
             consoleLog.streamLog(server);
         });
 
@@ -996,6 +1007,21 @@ private:
         h += "  document.addEventListener('DOMContentLoaded', applyThemeUI);\n";
         h += "  document.addEventListener('visibilitychange', function() { if (!document.hidden) applyThemeUI(); });\n";
         h += "  setInterval(applyThemeUI, 30000);\n";
+        h += "  function pollNavStatus() {\n";
+        h += "    fetch('/api/status')\n";
+        h += "      .then(function(r){ return r.json(); })\n";
+        h += "      .then(function(d){\n";
+        h += "        var pDot = document.getElementById('pollDot');\n";
+        h += "        if (pDot && d.polling !== undefined) {\n";
+        h += "          if (d.polling) pDot.classList.add('active');\n";
+        h += "          else pDot.classList.remove('active');\n";
+        h += "        }\n";
+        h += "        var next = (d && d.polling) ? 1000 : 4000;\n";
+        h += "        setTimeout(pollNavStatus, next);\n";
+        h += "      })\n";
+        h += "      .catch(function(){ setTimeout(pollNavStatus, 5000); });\n";
+        h += "  }\n";
+        h += "  document.addEventListener('DOMContentLoaded', pollNavStatus);\n";
         h += "  </script>\n";
         h += "  <div class='navbar'>\n";
         h += "    <div class='nav-inner'>\n";
@@ -1010,9 +1036,9 @@ private:
         h += "      <div class='nav-right'>\n";
         h += "        <label class='switch-wrap' title='Toggle BMS Polling (Click to " + String(isPollingPaused ? "resume" : "pause") + ")'>\n";
         if (isPollingPaused) {
-            h += "          <span style='font-size:0.84rem;font-weight:700;color:#dc2626;'>⏸ Paused</span>\n";
+            h += "          <span id='pollStatusText' style='font-size:0.84rem;font-weight:700;color:#dc2626;display:inline-flex;align-items:center;gap:4px;'><span id='pollDot' class='poll-dot'>⏸</span> <span id='pollLabel'>Paused</span></span>\n";
         } else {
-            h += "          <span style='font-size:0.84rem;font-weight:700;color:#16a34a;'>● Polling</span>\n";
+            h += "          <span id='pollStatusText' style='font-size:0.84rem;font-weight:700;color:#16a34a;display:inline-flex;align-items:center;gap:4px;'><span id='pollDot' class='poll-dot'>●</span> <span id='pollLabel'>Polling</span></span>\n";
         }
         h += "          <span class='switch'>\n";
         h += "            <input type='checkbox'" + String(isPollingPaused ? "" : " checked") + " onchange=\"window.location.href='/toggle_pause?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);\">\n";
@@ -1512,15 +1538,21 @@ private:
         html += "(function(){\n";
         html += "  var apiTok = '" + apiTok + "';\n";
         html += "  var initMods = " + String(stack.moduleCount) + ";\n";
+        html += "  var liveTimer = null;\n";
         html += "  function fmtT(t) { return (Math.abs(t - Math.round(t)) < 0.05) ? Math.round(t) : t.toFixed(1); }\n";
         html += "  function updateDashboardLive(){\n";
+        html += "    if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }\n";
         html += "    var url = '/api/data?brief=1' + (apiTok ? '&token=' + encodeURIComponent(apiTok) : '');\n";
         html += "    fetch(url)\n";
         html += "      .then(function(r){ return r.json(); })\n";
         html += "      .then(function(d){\n";
-        html += "        if (!d || !d.stack) return;\n";
+        html += "        if (!d || !d.stack) { liveTimer = setTimeout(updateDashboardLive, 5000); return; }\n";
         html += "        var s = d.stack;\n";
         html += "        if (initMods === 0 && s.modules_detected > 0) { window.location.reload(); return; }\n";
+        html += "        var pDot = document.getElementById('pollDot');\n";
+        html += "        if (pDot && s.is_polling !== undefined) {\n";
+        html += "          pDot.className = s.is_polling ? 'poll-dot active' : 'poll-dot';\n";
+        html += "        }\n";
         html += "        var el, card, u, sub;\n";
         html += "        el = document.getElementById('dashSoc'); if (el) el.textContent = s.soc;\n";
         html += "        el = document.getElementById('dashCurr'); card = document.getElementById('dashCurrCard');\n";
@@ -1655,10 +1687,14 @@ private:
         html += "            }\n";
         html += "          });\n";
         html += "        }\n";
+        html += "        var nextDelay = (s && s.is_polling) ? 1000 : 5000;\n";
+        html += "        liveTimer = setTimeout(updateDashboardLive, nextDelay);\n";
         html += "      })\n";
-        html += "      .catch(function(e){});\n";
+        html += "      .catch(function(e){\n";
+        html += "        liveTimer = setTimeout(updateDashboardLive, 5000);\n";
+        html += "      });\n";
         html += "  }\n";
-        html += "  setInterval(updateDashboardLive, 5000);\n";
+        html += "  updateDashboardLive();\n";
         html += "})();\n";
         html += "</script>\n";
 
@@ -1807,9 +1843,9 @@ private:
         html += "  <div class='card card-teal'>\n";
         html += "    <h3>🛡️ Health & Cycles</h3>\n";
         html += "    <div style='font-size:0.86rem;line-height:1.6;'>\n";
-        html += "      <div>State of Health (SOH): <b>" + sohStr + "</b></div>\n";
-        html += "      <div>SOH Times: " + sohTimesStr + "</div>\n";
-        html += "      <div>Charge Cycles: <b>" + (st.valid ? String(st.cycleTimes) : "N/A (Slave Unit)") + "</b></div>\n";
+        html += "      <div>State of Health (SOH): <b id='modSoh'>" + sohStr + "</b></div>\n";
+        html += "      <div>SOH Times: <span id='modSohTimes'>" + sohTimesStr + "</span></div>\n";
+        html += "      <div>Charge Cycles: <b id='modCycles'>" + (st.valid ? String(st.cycleTimes) : "N/A (Slave Unit)") + "</b></div>\n";
         html += "      <div>Spread (&Delta;V): <b id='modSpread'>" + String(vSpread) + " mV</b></div>\n";
         String dsgStr = "N/A";
         if (st.valid) {
@@ -1820,9 +1856,9 @@ private:
                 dsgStr = String(dsgAh, 1) + " Ah";
             }
         }
-        html += "      <div>Discharged: <b>" + dsgStr + "</b></div>\n";
+        html += "      <div>Discharged: <b id='modDischarged'>" + dsgStr + "</b></div>\n";
         if (euro.valid) {
-            html += "      <div>Energy Throughput: <b>" + String((uint32_t)euro.energyThroughputWh / 1000.0f, 1) + " kWh</b></div>\n";
+            html += "      <div>Energy Throughput: <b id='modEnergy'>" + String((uint32_t)euro.energyThroughputWh / 1000.0f, 1) + " kWh</b></div>\n";
         }
         html += "    </div>\n";
         html += "  </div>\n";
@@ -2069,12 +2105,18 @@ private:
         html += "    else hue = (t >= 48) ? 0 : Math.max(0, Math.round(35 - ((t - 40) / 8.0) * 35));\n";
         html += "    return 'hsl(' + hue + ',80%,44%)';\n";
         html += "  }\n";
+        html += "  var liveTimer = null;\n";
         html += "  function updateLive(){\n";
+        html += "    if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }\n";
         html += "    var url = '/api/module?m=' + modId + (apiTok ? '&token=' + encodeURIComponent(apiTok) : '');\n";
         html += "    fetch(url)\n";
         html += "      .then(function(r){ return r.json(); })\n";
         html += "      .then(function(d){\n";
-        html += "        if (!d || !d.valid) return;\n";
+        html += "        if (!d || !d.valid) { liveTimer = setTimeout(updateLive, 5000); return; }\n";
+        html += "        var pDot = document.getElementById('pollDot');\n";
+        html += "        if (pDot && d.is_polling !== undefined) {\n";
+        html += "          pDot.className = d.is_polling ? 'poll-dot active' : 'poll-dot';\n";
+        html += "        }\n";
         html += "        var el;\n";
         html += "        el = document.getElementById('modGaugeText'); if (el) el.textContent = d.soc + '%';\n";
         html += "        el = document.getElementById('modGaugeCircle'); if (el) el.setAttribute('stroke-dashoffset', (263.89 - (263.89 * d.soc / 100.0)).toFixed(1));\n";
@@ -2088,6 +2130,11 @@ private:
         html += "        el = document.getElementById('modMaxTemp'); if (el) el.textContent = d.max_temp.toFixed(1) + ' °C';\n";
         html += "        el = document.getElementById('modDeltaTemp'); if (el) el.textContent = d.temp_delta.toFixed(1) + ' °C';\n";
         html += "        el = document.getElementById('modBaseState'); if (el) el.textContent = d.base_state;\n";
+        html += "        el = document.getElementById('modSoh'); if (el && d.soh_str) el.textContent = d.soh_str;\n";
+        html += "        el = document.getElementById('modCycles'); if (el && d.cycle_times !== null && d.cycle_times !== undefined) el.textContent = d.cycle_times;\n";
+        html += "        el = document.getElementById('modSohTimes'); if (el && d.soh_times !== null && d.soh_times !== undefined) { el.innerHTML = (d.soh_times > 0) ? (\"<b style='color:#dc2626;'>\" + d.soh_times + \"</b>\") : \"<b>0</b>\"; }\n";
+        html += "        el = document.getElementById('modDischarged'); if (el && d.discharged_ah !== null && d.discharged_ah !== undefined) { var dsg = d.discharged_ah; el.textContent = (dsg >= 10000 ? dsg.toFixed(0) : dsg.toFixed(1)) + ' Ah'; }\n";
+        html += "        el = document.getElementById('modEnergy'); if (el && d.energy_kwh !== null && d.energy_kwh !== undefined) { el.textContent = d.energy_kwh.toFixed(1) + ' kWh'; }\n";
         html += "        var fi = document.getElementById('footerScrapeInfo');\n";
         html += "        if (fi && d.scrape_duration_ms !== undefined) {\n";
         html += "          var dur = (d.scrape_duration_ms / 1000.0).toFixed(2);\n";
@@ -2113,9 +2160,14 @@ private:
         html += "            }\n";
         html += "          });\n";
         html += "        }\n";
-        html += "      }).catch(function(e){});\n";
+        html += "        var nextDelay = (d && d.is_polling) ? 1000 : 5000;\n";
+        html += "        liveTimer = setTimeout(updateLive, nextDelay);\n";
+        html += "      })\n";
+        html += "      .catch(function(e){\n";
+        html += "        liveTimer = setTimeout(updateLive, 5000);\n";
+        html += "      });\n";
         html += "  }\n";
-        html += "  setInterval(updateLive, 5000);\n";
+        html += "  updateLive();\n";
         html += "})();\n";
         html += "</script>\n";
 
@@ -2510,6 +2562,8 @@ private:
         ChunkedResponseSender json(server, "application/json; charset=utf-8", 512);
         json += "{\"m\":"; json += String(m);
         json += ",\"valid\":"; json += (p.valid ? "true" : "false");
+        json += ",\"is_polling\":"; json += (pylonSerial.isPolling() ? "true" : "false");
+        json += ",\"is_paused\":"; json += (isPollingPaused ? "true" : "false");
         json += ",\"soc\":"; json += String(soc);
         json += ",\"volt\":"; json += String(modVolt, 2);
         json += ",\"curr\":"; json += String(modCurr, 2);
@@ -2521,6 +2575,30 @@ private:
         json += ",\"max_temp\":"; json += String(maxCellT, 1);
         json += ",\"temp_delta\":"; json += String(maxCellT - minCellT, 1);
         json += ",\"base_state\":\""; json += p.baseState; json += "\"";
+        
+        const ModuleStats &st = mod.stats;
+        const EuroStats &euro = mod.euro;
+        int mSoh = (st.valid && st.sohPercent > 0) ? st.sohPercent : -1;
+        String mSohStr = "N/A";
+        if (mSoh > 0) {
+            mSohStr = String(mSoh) + "%";
+            if (strlen(st.sohStatus) > 0 && strcmp(st.sohStatus, "Normal") != 0) {
+                mSohStr += " (" + String(st.sohStatus) + ")";
+            }
+        } else if (strlen(p.sohState) > 0) {
+            mSohStr = String(p.sohState);
+        } else if (st.valid && strlen(st.sohStatus) > 0 && strcmp(st.sohStatus, "Normal") != 0) {
+            mSohStr = String(st.sohStatus);
+        }
+
+        json += ",\"soh\":"; json += (mSoh > 0 ? String(mSoh) : "null");
+        json += ",\"soh_str\":\""; json += mSohStr; json += "\"";
+        json += ",\"soh_times\":"; json += (st.valid ? String(st.sohTimes) : "null");
+        json += ",\"cycle_times\":"; json += (st.valid ? String(st.cycleTimes) : "null");
+        json += ",\"discharged_ah\":"; json += (st.valid ? String(getDischargedCapAh(st, stack.model), 1) : "null");
+        if (euro.valid) {
+            json += ",\"energy_kwh\":"; json += String((uint32_t)euro.energyThroughputWh / 1000.0f, 1);
+        }
         json += ",\"scrape_success\":"; json += (stack.scrapeSuccess ? "true" : "false");
         json += ",\"scrape_duration_ms\":"; json += String(stack.scrapeDurationMs);
         json += ",\"cells\":[";
@@ -2554,6 +2632,8 @@ private:
         json += "{\"stack\":{";
         json += "\"model\":\""; json += stack.modelName; json += "\",";
         json += "\"modules_detected\":"; json += String(stack.moduleCount); json += ",";
+        json += "\"is_polling\":"; json += (pylonSerial.isPolling() ? "true" : "false"); json += ",";
+        json += "\"is_paused\":"; json += (isPollingPaused ? "true" : "false"); json += ",";
         json += "\"voltage\":"; json += String(a.stackVolt, 2); json += ",";
         json += "\"current\":"; json += String(a.stackCurr, 2); json += ",";
         json += "\"power\":"; json += String(a.stackPower, 1); json += ",";
@@ -2745,7 +2825,7 @@ private:
         html += "function updateContent(text){let el=document.getElementById('consoleOutput');let isAtBottom=(el.scrollHeight-el.scrollTop<=el.clientHeight+60);el.innerHTML=colorize(text);if(isAtBottom){el.scrollTop=el.scrollHeight;}}\n";
         html += "function sendCmd(c){fetch('/cmd?c='+encodeURIComponent(c)+'&ajax=1').then(()=>{setTimeout(fetchLogNow,400);});}\n";
         html += "function sendCustom(){let inp=document.getElementById('customCmd');let c=inp.value.trim();if(c){sendCmd(c);inp.value='';}}\n";
-        html += "function fetchLogNow(){fetch('/log/raw').then(r=>r.text()).then(t=>{updateContent(t);});}\n";
+        html += "function fetchLogNow(){fetch('/log/raw').then(r=>{let isP=r.headers.get('X-Bms-Polling');let pDot=document.getElementById('pollDot');if(pDot&&isP!==null){if(isP==='1')pDot.classList.add('active');else pDot.classList.remove('active');}return r.text();}).then(t=>{updateContent(t);}).catch(e=>{});}\n";
         html += "function toggleAutoRefresh(){let cb=document.getElementById('autoRefresh');if(cb.checked){startAutoRefresh();}else{clearInterval(intervalId);intervalId=null;}}\n";
         html += "function startAutoRefresh(){if(intervalId)clearInterval(intervalId);intervalId=setInterval(fetchLogNow," + String(LOG_AUTO_REFRESH_INTERVAL_SEC * 1000) + ");}\n";
         html += "function applyTheme(th){let wrap=document.getElementById('termWrap');let btn=document.getElementById('themeBtn');if(th==='light'){wrap.className='term-light';btn.innerText='🌙 Dark Theme';}else{wrap.className='term-dark';btn.innerText='☀️ Light Theme';}localStorage.setItem('pylonLogTheme',th);}\n";

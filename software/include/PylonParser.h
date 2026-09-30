@@ -824,7 +824,13 @@ public:
         if (cellsParsed > 0) {
             for (uint8_t i = 0; i < MAX_CELLS_PER_MODULE; ++i) {
                 if (tempCells[i].voltMv > 0) {
-                    mod.cells[i] = tempCells[i];
+                    mod.cells[i].voltMv = tempCells[i].voltMv;
+                    mod.cells[i].currMa = tempCells[i].currMa;
+                    mod.cells[i].tempMdeg = tempCells[i].tempMdeg;
+                    mod.cells[i].socPercent = tempCells[i].socPercent;
+                    mod.cells[i].coulombMah = tempCells[i].coulombMah;
+                    mod.cells[i].balance = tempCells[i].balance;
+                    strncpy(mod.cells[i].state, tempCells[i].state, sizeof(mod.cells[i].state) - 1);
                 }
             }
             mod.cellCountParsed = cellsParsed;

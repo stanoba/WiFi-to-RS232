@@ -84,17 +84,35 @@ The firmware supports the ultra-compact **ESP32-C3 Super Mini** (RISC-V single-c
 
 ---
 
-## RS232 Interface
+## RS232 Interface & Wiring
 
-The Pylontech batteries expose a standard RS232 serial console via an **RJ45 port** (not Ethernet). The PCB contains a **MAX3232** level-shifter to convert between RS232 ±12V levels and 3.3V TTL logic used by the ESP32.
+The Pylontech batteries expose a standard RS232 serial console via an **RJ45 modular port** (not Ethernet).
 
-**Communication parameters:**
-- Baud rate: `115200`
-- Data bits: `8`
-- Stop bits: `1`
-- Parity: None
-- Flow control: None
+> [!WARNING]
+> **DO NOT connect ESP32 GPIO pins directly to the Pylontech Console port!**
+> The Pylontech RJ45 Console port uses standard true RS232 signaling with voltage levels up to $\pm 12\text{ V}$. Connecting ESP32 GPIO pins directly (which only tolerate 3.3V TTL logic) will **permanently destroy the ESP32 microcontroller**.
+> 
+> An RS232 transceiver (e.g. Maxim **MAX3232** with charge-pump capacitors or our custom hardware shield) **must always be used** to safely translate between RS232 ($\pm 12\text{ V}$) and 3.3V TTL UART logic.
 
-**Tested battery models:**
+### Pylontech RJ45 Console Pinout
+
+| RJ45 Pin | Pylontech Signal | Direction | Connection to MAX3232 |
+|:---|:---|:---|:---|
+| **Pin 3** | Pylontech Console **TX** | Output $\rightarrow$ | MAX3232 **`R1IN`** (Pin 13) |
+| **Pin 6** | Pylontech Console **RX** | Input $\leftarrow$ | MAX3232 **`T1OUT`** (Pin 14) |
+| **Pin 8** | **GND** | Common Ground | MAX3232 / ESP32 **`GND`** |
+| *Pins 1, 2, 4, 5, 7* | *NC* | — | Not connected |
+
+### Communication Parameters
+
+- **Baud Rate:** `115200`
+- **Data Bits:** `8`
+- **Stop Bits:** `1`
+- **Parity:** None
+- **Flow Control:** None
+
+### Tested Battery Models
+
 - Pylontech **US3000C** — 15-cell LiFePO4 (48V / 74Ah)
 - Pylontech **US3000D** — 15-cell LiFePO4 (48V / 74Ah)
+- Pylontech **US2000C** / **US2000** (compatible)

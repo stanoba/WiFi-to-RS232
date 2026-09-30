@@ -4,10 +4,21 @@ Visual overview of the **WiFi-to-RS232 Pylon Smart Monitor** web interface — a
 
 ---
 
+## Navigation Bar & Polling Indicator
+
+The persistent header across all web pages provides immediate visual feedback of the BMS communication state:
+
+- **🟢 Green `● Polling` (Idle):** Battery telemetry is fresh; the serial interface is idle waiting for the next scheduled cycle.
+- **🟡 Amber Blinking `● Polling` (Active):** An active RS232 scrape transaction (`pwr`, `bat`, `stat`, `info`) is executing in the background. The smooth opacity animation confirms real-time serial activity without layout shifting.
+- **🔴 Red `⏸ Paused`:** BMS serial polling is paused by the user (via `/toggle_pause` or quick action).
+- **Universal Synchronization:** Powered by the ultra-lightweight `/api/status` endpoint (or live AJAX payloads on `/` and `/module`), ensuring the indicator state stays synchronized in real time regardless of which page is currently open (`/`, `/module`, `/log`, `/settings`, `/wifi`, `/update`).
+
+---
+
 ## Dashboard (`/`)
 
 Live battery telemetry overview organized into modular Title Case sections with thematic emojis:
-- **6×2 Analytics Grid** — 12 telemetry cards: Average SOC, Total Current, Highest/Lowest Cell Voltage (both with consistent blue accent styling), Highest/Lowest Temperature, Voltage Spread (ΔV), Stack SOH, Stack Voltage, Total Power, Average Cell Voltage, Cell Standard Deviation.
+- **6×2 Analytics Grid** — 12 telemetry cards: Average SOC, Total Current, Highest/Lowest Cell Voltage (both with consistent blue accent styling), Highest/Lowest Temperature, Voltage Spread (ΔV), Stack SOH, Stack Voltage, Total Power, Average Cell Voltage, Cell Standard Deviation. All cards update dynamically via AJAX without full page reloads.
 - **📈 24-Hour Telemetry History** — Zero-dependency HTML5 Canvas chart with 1h/6h/12h/24h range selector, area gradient fill for SOC (%), red line curve and unified tooltip indicator for Current (A) with auto-scaling right Y-axis. Voltage was streamlined out to minimize memory footprint.
 - **🔋 Battery Modules Detail** — Module ID, Device Model, Voltage, Current, SOC, Spread, Pack Temp, MOSFET Temp, Base State, Barcode.
 - **⚙️ System Status & Diagnostics** — Symmetrical 3-column live grid: Hostname, IP, WiFi signal & SSID, battery link status, active units, MQTT status, uptime, free RAM & fragmentation, CPU load & temperature, reset reason, chip model & flash size.

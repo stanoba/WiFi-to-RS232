@@ -16,7 +16,14 @@ private:
     uint8_t rxPin = PIN_UART_RX;
     std::queue<String> userCmdQueue;
     bool portBusy = false;
+    bool pollingActive = false;
     bool debugModeUnlocked = false;
+
+    struct PollingActiveGuard {
+        bool &flag;
+        PollingActiveGuard(bool &f) : flag(f) { flag = true; }
+        ~PollingActiveGuard() { flag = false; }
+    };
 
     void setLedSerial(bool on) {
         digitalWrite(PIN_LED_SERIAL, on ? LED_ACTIVE_LEVEL : !LED_ACTIVE_LEVEL);
@@ -26,6 +33,7 @@ public:
     uint8_t getTxPin() const { return txPin; }
     uint8_t getRxPin() const { return rxPin; }
     bool isBusy() const { return portBusy; }
+    bool isPolling() const { return pollingActive; }
     bool isDebugUnlocked() const { return debugModeUnlocked; }
 
     static bool isBlockedCommand(const String &cmd) {
@@ -222,6 +230,7 @@ public:
     }
 
     bool pollStack(BatteryStack &stack, bool fullSlowPoll = false) {
+        PollingActiveGuard guard(pollingActive);
         uint32_t startTime = millis();
         consoleLog.logInfo(String("--- Starting ") + (fullSlowPoll ? "full (fast+slow)" : "fast") + " poll cycle ---");
 
@@ -343,6 +352,7 @@ public:
 
     bool pollModuleOnDemand(BatteryStack &stack, uint8_t modIndex) {
         if (modIndex < 1 || modIndex > MAX_MODULES) return false;
+        PollingActiveGuard guard(pollingActive);
         consoleLog.logInfo("Executing on-demand refresh for Module #" + String(modIndex));
 
         const ModelProfile *prof = getModelProfile(stack.model);

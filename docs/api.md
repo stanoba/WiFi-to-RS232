@@ -35,7 +35,8 @@ HTTP Status: `401 Unauthorized`
 | Endpoint | Method | Auth | Description |
 |:---|:---:|:---:|:---|
 | [`/api/data`](#get-apidata) | `GET` | Bearer | Comprehensive live telemetry (stack totals, individual modules, cell voltages, SOC, SOH, alarms) **and ESP32 system diagnostics** (`system` block; streamed in HTTP chunks) |
-| [`/api/module`](#get-apimodule) | `GET` | Bearer | Single-module detail (cells, voltages, temperatures; streamed in HTTP chunks) |
+| [`/api/module`](#get-apimodule) | `GET` | Bearer | Single-module detail (cells, voltages, temperatures, SOH, cycle count; streamed in HTTP chunks) |
+| [`/api/status`](#get-apistatus) | `GET` | Web/Token | Micro status endpoint returning live BMS serial polling and pause states |
 | [`/api/history`](#get-apihistory) | `GET` | Bearer | Historical rolling 24-hour telemetry samples (current, SOC) for charting and time-series analysis (streamed in HTTP chunks) |
 | [`/api/peers`](#get-apipeers) | `GET` | Bearer | Discovered peer Pylon Smart Monitors on the local network via mDNS |
 | [`/sync_ntp`](#get-sync_ntp) | `GET` | Web/Token | Immediately triggers NTP time synchronization across redundant servers |
@@ -67,6 +68,8 @@ curl -s http://192.168.1.150/api/data \
   "stack": {
     "model": "US3000C",
     "modules_detected": 1,
+    "is_polling": false,
+    "is_paused": false,
     "voltage": 49.77,
     "current": -2.30,
     "power": -114.3,
@@ -147,6 +150,8 @@ curl -s http://192.168.1.150/api/data \
 
 * `model` *(string)*: Verified battery model family (e.g. `"US3000C"`, `"US3000D"`).
 * `modules_detected` *(integer)*: Total count of active modules detected in stack (1 to 16).
+* `is_polling` *(boolean)*: `true` if a BMS RS232 scrape transaction is actively in progress.
+* `is_paused` *(boolean)*: `true` if scheduled BMS polling is paused by the user.
 * `voltage` *(float)*: Total stack terminal voltage in Volts (V).
 * `current` *(float)*: Total stack current in Amperes (A; positive = charging, negative = discharging).
 * `power` *(float)*: Calculated instantaneous stack power in Watts (W = V × A).
@@ -217,7 +222,7 @@ ESP32 controller diagnostics — always present in the response.
 
 ### `GET /api/module`
 
-Returns detailed telemetry for a single battery module including all cell-level data.
+Returns detailed live telemetry for a single battery module, including cell-level voltages, balancing flags, individual cell temperatures, SOH degradation data, lifetime cycle counts, and energy throughput.
 
 #### Query Parameters:
 * `m` *(integer, required)*: Module index (1–16).
@@ -227,6 +232,72 @@ Returns detailed telemetry for a single battery module including all cell-level 
 ```bash
 curl -s "http://192.168.1.150/api/module?m=1"
 ```
+
+#### Example Response:
+```json
+{
+  "m": 1,
+  "valid": true,
+  "is_polling": false,
+  "is_paused": false,
+  "soc": 86,
+  "volt": 49.77,
+  "curr": -2.30,
+  "power": -114.3,
+  "v_spread": 1,
+  "min_v": 3318,
+  "max_v": 3319,
+  "min_temp": 23.6,
+  "max_temp": 23.6,
+  "temp_delta": 0.0,
+  "base_state": "Dischg",
+  "soh": 99,
+  "soh_str": "99%",
+  "soh_times": 0,
+  "cycle_times": 142,
+  "discharged_ah": 9620.4,
+  "energy_kwh": 482.1,
+  "scrape_success": true,
+  "scrape_duration_ms": 1160,
+  "cells": [
+    {
+      "v": 3318,
+      "soc": 86,
+      "t": 23.6,
+      "bal": false,
+      "soh_valid": true,
+      "soh_count": 0,
+      "soh_status": "Normal"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/status`
+
+Lightweight micro-status endpoint returning immediate BMS serial transaction state and user pause status. Optimized for sub-millisecond polling by UI indicators and monitoring daemons without parsing overhead.
+
+#### Query Parameters:
+* `token` *(optional)*: Bearer token (if authentication is enabled).
+
+#### Example Request:
+```bash
+curl -s "http://192.168.1.150/api/status"
+```
+
+#### Example Response:
+```json
+{
+  "polling": false,
+  "paused": false
+}
+```
+
+#### Schema Fields:
+* `polling` *(boolean)*: `true` if a BMS RS232 scrape transaction is actively in progress.
+* `paused` *(boolean)*: `true` if scheduled BMS serial polling is currently paused.
 
 ---
 

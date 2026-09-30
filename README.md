@@ -89,6 +89,7 @@ pio device monitor -b 115200
 | `http://<device-ip>/metrics` | Prometheus Metrics |
 | `http://<device-ip>/api/data` | REST JSON API (live telemetry & diagnostics) |
 | `http://<device-ip>/api/module` | REST JSON API (module detail) |
+| `http://<device-ip>/api/status` | REST JSON API (micro polling/pause status) |
 | `http://<device-ip>/api/history` | REST JSON API (24h telemetry samples) |
 | `http://<device-ip>/api/peers` | REST JSON API (discovered peer monitors) |
 | `http://<device-ip>/update` | OTA Firmware Update |
