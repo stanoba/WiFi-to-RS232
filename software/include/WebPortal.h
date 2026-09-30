@@ -143,9 +143,9 @@ html.dark .ap-banner a{color:#fbbf24;}
 @media(max-width:400px){.grid-dash{grid-template-columns:1fr;}}
 .grid-dash .card{padding:14px 15px 12px 15px;display:flex;flex-direction:column;justify-content:flex-start;min-height:104px;}
 .grid-dash .card h3{margin:0 0 6px 0;font-size:0.80rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-dash .card .val{font-size:2.05rem;font-weight:800;color:var(--navy);display:flex;align-items:baseline;line-height:1.15;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-0.02em;}
+.grid-dash .card .val{font-size:2.10rem;font-weight:700;color:var(--navy);display:flex;align-items:baseline;line-height:1.15;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-0.02em;}
 .grid-dash .card .sub{font-size:0.82rem;color:#718096;margin-top:auto;padding-top:4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-dash .card .unit{font-size:1.10rem;color:#718096;margin-left:5px;font-weight:500;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;}
+.grid-dash .card .unit{font-size:1.10rem;color:#718096;margin-left:5px;font-weight:600;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:0 4px 12px rgba(23,28,97,0.04);position:relative;overflow:hidden;}
 html.dark .card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--teal);}
@@ -157,9 +157,9 @@ html.dark .card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .card.card-power::before{background:#00b3ba;}
 .card.card-red::before{background:#dc2626;}
 .card h3{margin:0 0 8px 0;font-size:0.80rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;}
-.card .val{font-size:2.00rem;font-weight:700;color:var(--navy);display:flex;align-items:baseline;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-0.02em;}
+.card .val{font-size:2.05rem;font-weight:700;color:var(--navy);display:flex;align-items:baseline;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-0.02em;}
 .card .sub{font-size:0.82rem;color:#718096;margin-top:4px;font-weight:500;}
-.card .unit{font-size:1.05rem;color:#718096;margin-left:5px;font-weight:500;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;}
+.card .unit{font-size:1.05rem;color:#718096;margin-left:5px;font-weight:600;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;}
 html.dark .card h3, html.dark .grid-dash .card h3{color:#94a3b8;}
 html.dark .card .sub, html.dark .grid-dash .card .sub, html.dark .grid-dash .card .unit{color:#94a3b8;}
 .scrape-banner{background:#f0fdfa;border:1.5px solid var(--teal);border-left:5px solid var(--teal);color:var(--navy);padding:10px 16px;border-radius:8px;margin-bottom:18px;font-size:0.88rem;display:flex;align-items:center;justify-content:space-between;gap:14px;}
@@ -1241,10 +1241,10 @@ private:
             // Dynamic colors: Positive (charging) = green, Negative (discharging) = red, Zero = blue/navy
             String currColor = "color:var(--navy);";
             String currCardClass = "card card-navy";
-            if (a.stackCurr > 0.05f) {
+            if (a.stackCurr > 0.005f) {
                 currColor = "color:#16a34a;";
                 currCardClass = "card card-green";
-            } else if (a.stackCurr < -0.05f) {
+            } else if (a.stackCurr < -0.005f) {
                 currColor = "color:#dc2626;";
                 currCardClass = "card card-red";
             }
@@ -1409,8 +1409,8 @@ private:
 
                 float modCurrVal = p.currMa / 1000.0f;
                 String modCurrColor = "color:var(--navy);";
-                if (modCurrVal > 0.05f) modCurrColor = "color:#16a34a;font-weight:700;";
-                else if (modCurrVal < -0.05f) modCurrColor = "color:#dc2626;font-weight:700;";
+                if (modCurrVal > 0.005f) modCurrColor = "color:#16a34a;font-weight:700;";
+                else if (modCurrVal < -0.005f) modCurrColor = "color:#dc2626;font-weight:700;";
 
                 int socVal = p.socPercent;
                 if (socVal < 0) socVal = 0;
@@ -1568,8 +1568,8 @@ private:
         html += "        if (el) {\n";
         html += "          el.textContent = s.current.toFixed(2);\n";
         html += "          var col = 'var(--navy)', cls = 'card card-navy';\n";
-        html += "          if (s.current > 0.05) { col = '#16a34a'; cls = 'card card-green'; }\n";
-        html += "          else if (s.current < -0.05) { col = '#dc2626'; cls = 'card card-red'; }\n";
+        html += "          if (s.current > 0.005) { col = '#16a34a'; cls = 'card card-green'; }\n";
+        html += "          else if (s.current < -0.005) { col = '#dc2626'; cls = 'card card-red'; }\n";
         html += "          el.style.color = col; if (card) card.className = cls;\n";
         html += "        }\n";
         html += "        el = document.getElementById('dashHighV'); if (el) el.textContent = s.highest_cell_v.toFixed(3);\n";
@@ -1669,8 +1669,8 @@ private:
         html += "            var mc = document.getElementById('mCurr_' + id);\n";
         html += "            if (mc) {\n";
         html += "              mc.textContent = m.current.toFixed(2) + ' A';\n";
-        html += "              mc.style.color = (m.current > 0.05) ? '#16a34a' : ((m.current < -0.05) ? '#dc2626' : 'var(--navy)');\n";
-        html += "              mc.style.fontWeight = (m.current > 0.05 || m.current < -0.05) ? '700' : 'normal';\n";
+        html += "              mc.style.color = (m.current > 0.005) ? '#16a34a' : ((m.current < -0.005) ? '#dc2626' : 'var(--navy)');\n";
+        html += "              mc.style.fontWeight = (m.current > 0.005 || m.current < -0.005) ? '700' : 'normal';\n";
         html += "            }\n";
         html += "            var ms = document.getElementById('mSoc_' + id); if (ms) ms.textContent = m.soc + '%';\n";
         html += "            var mf = document.getElementById('mBatFill_' + id);\n";
@@ -1793,7 +1793,7 @@ private:
         html += "        <circle id='modGaugeCircle' cx='50' cy='50' r='42' stroke='url(#pylonGrad)' stroke-width='8' fill='none' stroke-dasharray='263.89' stroke-dashoffset='" + String(dashoffset, 1) + "' stroke-linecap='round' transform='rotate(-90 50 50)'/>\n";
         html += "        <text id='modGaugeText' x='50' y='57' text-anchor='middle' font-weight='800' font-size='22' fill='var(--navy)'>" + String(soc) + "%</text>\n";
         html += "      </svg>\n";
-        String mCurrCol = (modCurr > 0.05f) ? "color:#16a34a;" : ((modCurr < -0.05f) ? "color:#dc2626;" : "color:var(--navy);");
+        String mCurrCol = (modCurr > 0.005f) ? "color:#16a34a;" : ((modCurr < -0.005f) ? "color:#dc2626;" : "color:var(--navy);");
         String mPwrCol = (modPower > 1.0f) ? "color:#16a34a;" : ((modPower < -1.0f) ? "color:#dc2626;" : "color:var(--navy);");
 
         String modPowerStr;
@@ -1854,7 +1854,12 @@ private:
         html += "    <div style='font-size:0.86rem;line-height:1.6;'>\n";
         html += "      <div>State of Health (SOH): <b id='modSoh'>" + sohStr + "</b></div>\n";
         html += "      <div>SOH Times: <span id='modSohTimes'>" + sohTimesStr + "</span></div>\n";
-        html += "      <div>Charge Cycles: <b id='modCycles'>" + (st.valid ? String(st.cycleTimes) : "N/A (Slave Unit)") + "</b></div>\n";
+        uint32_t effCycles = getEffectiveCycles(mod);
+        String cyclesStr = "N/A (Slave Unit)";
+        if (effCycles > 0 || st.valid || euro.valid) {
+            cyclesStr = String(effCycles);
+        }
+        html += "      <div>Charge Cycles: <b id='modCycles'>" + cyclesStr + "</b></div>\n";
         html += "      <div>Spread (&Delta;V): <b id='modSpread'>" + String(vSpread) + " mV</b></div>\n";
         String dsgStr = "N/A";
         if (st.valid) {
@@ -2130,7 +2135,7 @@ private:
         html += "        el = document.getElementById('modGaugeText'); if (el) el.textContent = d.soc + '%';\n";
         html += "        el = document.getElementById('modGaugeCircle'); if (el) el.setAttribute('stroke-dashoffset', (263.89 - (263.89 * d.soc / 100.0)).toFixed(1));\n";
         html += "        el = document.getElementById('modVolt'); if (el) el.textContent = d.volt.toFixed(2) + ' V';\n";
-        html += "        el = document.getElementById('modCurr'); if (el) { el.textContent = d.curr.toFixed(2) + ' A'; el.style.color = (d.curr > 0.05) ? '#16a34a' : ((d.curr < -0.05) ? '#dc2626' : 'var(--navy)'); }\n";
+        html += "        el = document.getElementById('modCurr'); if (el) { el.textContent = d.curr.toFixed(2) + ' A'; el.style.color = (d.curr > 0.005) ? '#16a34a' : ((d.curr < -0.005) ? '#dc2626' : 'var(--navy)'); }\n";
         html += "        el = document.getElementById('modPower'); if (el) { var absP = Math.abs(d.power); el.textContent = (absP >= 1000.0) ? ((d.power / 1000.0).toFixed(2) + ' kW') : (d.power.toFixed(1) + ' W'); el.style.color = (d.power > 1.0) ? '#16a34a' : ((d.power < -1.0) ? '#dc2626' : 'var(--navy)'); }\n";
         html += "        el = document.getElementById('modSpread'); if (el) el.textContent = d.v_spread + ' mV';\n";
         html += "        el = document.getElementById('modPackTemp'); if (el) el.textContent = d.pack_temp.toFixed(1) + ' °C';\n";
@@ -2603,7 +2608,13 @@ private:
         json += ",\"soh\":"; json += (mSoh > 0 ? String(mSoh) : "null");
         json += ",\"soh_str\":\""; json += mSohStr; json += "\"";
         json += ",\"soh_times\":"; json += (st.valid ? String(st.sohTimes) : "null");
-        json += ",\"cycle_times\":"; json += (st.valid ? String(st.cycleTimes) : "null");
+        uint32_t effCycles = getEffectiveCycles(mod);
+        json += ",\"cycle_times\":";
+        if (effCycles > 0 || st.valid || euro.valid) {
+            json += String(effCycles);
+        } else {
+            json += "null";
+        }
         json += ",\"discharged_ah\":"; json += (st.valid ? String(getDischargedCapAh(st, stack.model), 1) : "null");
         if (euro.valid) {
             json += ",\"energy_kwh\":"; json += String((uint32_t)euro.energyThroughputWh / 1000.0f, 1);

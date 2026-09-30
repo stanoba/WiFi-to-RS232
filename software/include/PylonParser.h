@@ -889,7 +889,7 @@ public:
                 euro.capacityThroughputAh = strtoull(val.c_str(), nullptr, 10);
             } else if (key.equalsIgnoreCase("Deep Dsg. Count")) {
                 euro.deepDsgCount = val.toInt();
-            } else if (key.equalsIgnoreCase("Chg. Dsg. Cycle")) {
+            } else if (key.equalsIgnoreCase("Chg. Dsg. Cycle") || key.indexOf("Chg. Dsg. Cycle") >= 0 || key.indexOf("Dsg. Cycle") >= 0) {
                 euro.chgDsgCycle = val.toInt();
             }
         }

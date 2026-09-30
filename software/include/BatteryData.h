@@ -29,7 +29,7 @@ struct ModelProfile {
 
 static const ModelProfile MODEL_REGISTRY[] = {
     { MODEL_US3000C,  "US3000C",  {"US3000C",  "3000C",   nullptr, nullptr}, false, true,  true,  true,  true,  false, 15 },
-    { MODEL_US3000D,  "US3000D",  {"US3000D",  "3000D",   nullptr, nullptr}, true,  false, false, false, false, true,  15 },
+    { MODEL_US3000D,  "US3000D",  {"US3000D",  "3000D",   nullptr, nullptr}, true,  false, true,  true,  false, true,  15 },
     { MODEL_US2000C,  "US2000C",  {"US2000C",  "2000C",   nullptr, nullptr}, false, true,  true,  true,  true,  false, 15 },
     { MODEL_US2000,   "US2000",   {"US2000",   "2000B",   "2000",  nullptr}, false, false, true,  true,  false, false, 15 },
     { MODEL_US3000,   "US3000",   {"US3000",   "3000B",   nullptr, nullptr}, false, false, true,  true,  false, false, 15 },
@@ -210,6 +210,16 @@ struct BatteryModule {
     CellInfo    cells[MAX_CELLS_PER_MODULE];
     uint8_t     cellCountParsed = 0;
 };
+
+inline uint32_t getEffectiveCycles(const BatteryModule &mod) {
+    if (mod.euro.valid && mod.euro.chgDsgCycle > 0) {
+        return mod.euro.chgDsgCycle;
+    }
+    if (mod.stats.valid) {
+        return mod.stats.cycleTimes;
+    }
+    return 0;
+}
 
 struct BatteryStack {
     BatteryModel model = MODEL_UNKNOWN;

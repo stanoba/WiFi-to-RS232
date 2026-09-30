@@ -134,8 +134,8 @@ public:
         chunk += "# HELP pylontech_cycle_times_total Total charge/discharge cycle count\n";
         chunk += "# TYPE pylontech_cycle_times_total counter\n";
         for (uint8_t m = 1; m <= MAX_MODULES; ++m) {
-            if (stack.modules[m].present && stack.modules[m].stats.valid) {
-                chunk += "pylontech_cycle_times_total{module=\"" + String(m) + "\"} " + String(stack.modules[m].stats.cycleTimes) + "\n";
+            if (stack.modules[m].present && (stack.modules[m].stats.valid || stack.modules[m].euro.valid)) {
+                chunk += "pylontech_cycle_times_total{module=\"" + String(m) + "\"} " + String(getEffectiveCycles(stack.modules[m])) + "\n";
             }
         }
         chunk += "\n";

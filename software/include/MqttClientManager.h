@@ -381,11 +381,17 @@ public:
                 addS("mos_status",   mod.power.mosTempState[0] ? mod.power.mosTempState : "Unknown");
             }
 
-            // SOH (all modules, when stats are available)
+            // SOH & Cycles (all modules, when stats are available)
             if (mod.stats.valid && mod.stats.sohPercent > 0)
                 addI("soh", mod.stats.sohPercent);
             else
                 addNull("soh");
+
+            uint32_t effCycles = getEffectiveCycles(mod);
+            if (effCycles > 0 || mod.stats.valid || mod.euro.valid)
+                addI("cycles", (long)effCycles);
+            else
+                addNull("cycles");
 
             // Capacity & Energy Throughput — master module only
             if (hasMaster && mod.euro.valid) {
