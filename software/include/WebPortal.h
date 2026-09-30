@@ -211,12 +211,14 @@ html.dark .badge-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1
 .term-dark{background:#0f172a;border:1px solid #1e293b;color:#e2e8f0;}
 .term-dark .line-tx{color:#38bdf8;font-weight:700;}
 .term-dark .line-err{color:#f87171;font-weight:700;}
+.term-dark .line-warn{color:#fbbf24;font-weight:700;}
 .term-dark .line-sys{color:#facc15;}
 .term-dark .line-info{color:#a3e635;}
 .term-dark .ts{color:#64748b;}
 .term-light{background:#ffffff;border:1px solid #cbd5e1;color:#1e293b;}
 .term-light .line-tx{color:#0284c7;font-weight:700;}
 .term-light .line-err{color:#dc2626;font-weight:700;}
+.term-light .line-warn{color:#d97706;font-weight:700;}
 .term-light .line-sys{color:#d97706;}
 .term-light .line-info{color:#15803d;}
 .term-light .ts{color:#94a3b8;}
@@ -297,7 +299,9 @@ R"rawliteral(<script>
   function fetchData() {
     var sub = document.getElementById('chartSub');
     if(sub) sub.innerText = 'Refreshing data...';
-    fetch('/api/history?range=' + currentRange)
+    var tok = (typeof CONFIG_API_TOKEN !== 'undefined' && CONFIG_API_TOKEN) ? CONFIG_API_TOKEN : '';
+    var url = '/api/history?range=' + currentRange + (tok ? '&token=' + encodeURIComponent(tok) : '');
+    fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(d){
         chartData = (d && d.samples) ? d.samples : [];
@@ -1198,190 +1202,203 @@ private:
             html += "  <div style='display:flex;align-items:center;gap:8px;min-width:0;'><span>⏳</span> <span><b>Initial Battery Telemetry Scrape in Progress...</b> Connecting to BMS. Please wait or click <b>Poll Now</b>.</span></div>\n";
             html += "  <a href='/poll_now' class='btn btn-outline' style='padding:5px 12px;font-size:0.82rem;white-space:nowrap;flex-shrink:0;'>Poll Now</a>\n";
             html += "</div>\n";
-        }
-
-        // Dynamic colors: Positive (charging) = green, Negative (discharging) = red, Zero = blue/navy
-        String currColor = "color:var(--navy);";
-        String currCardClass = "card card-navy";
-        if (a.stackCurr > 0.05f) {
-            currColor = "color:#16a34a;";
-            currCardClass = "card card-green";
-        } else if (a.stackCurr < -0.05f) {
-            currColor = "color:#dc2626;";
-            currCardClass = "card card-red";
-        }
-
-        String pwrColor = "color:var(--navy);";
-        String pwrCardClass = "card card-navy";
-        if (a.stackPower > 1.0f) {
-            pwrColor = "color:#16a34a;";
-            pwrCardClass = "card card-green";
-        } else if (a.stackPower < -1.0f) {
-            pwrColor = "color:#dc2626;";
-            pwrCardClass = "card card-red";
-        }
-
-        char bufLow[16], bufHigh[16], bufAvg[16];
-        snprintf(bufLow, sizeof(bufLow), "%.3f", a.lowestCellV / 1000.0f);
-        snprintf(bufHigh, sizeof(bufHigh), "%.3f", a.highestCellV / 1000.0f);
-        snprintf(bufAvg, sizeof(bufAvg), "%.3f", (a.avgCellV > 0) ? (a.avgCellV / 1000.0) : 0.0);
-
-        String strLow = String(bufLow);
-        String strHigh = String(bufHigh);
-        String strAvg = String(bufAvg);
-
-        char bufMinT[16], bufMaxT[16];
-        if (fabsf(a.minCellT - roundf(a.minCellT)) < 0.05f) {
-            snprintf(bufMinT, sizeof(bufMinT), "%d", (int)roundf(a.minCellT));
         } else {
-            snprintf(bufMinT, sizeof(bufMinT), "%.1f", a.minCellT);
-        }
-        if (fabsf(a.maxCellT - roundf(a.maxCellT)) < 0.05f) {
-            snprintf(bufMaxT, sizeof(bufMaxT), "%d", (int)roundf(a.maxCellT));
-        } else {
-            snprintf(bufMaxT, sizeof(bufMaxT), "%.1f", a.maxCellT);
-        }
-        String strMinT = String(bufMinT);
-        String strMaxT = String(bufMaxT);
+            // Dynamic colors: Positive (charging) = green, Negative (discharging) = red, Zero = blue/navy
+            String currColor = "color:var(--navy);";
+            String currCardClass = "card card-navy";
+            if (a.stackCurr > 0.05f) {
+                currColor = "color:#16a34a;";
+                currCardClass = "card card-green";
+            } else if (a.stackCurr < -0.05f) {
+                currColor = "color:#dc2626;";
+                currCardClass = "card card-red";
+            }
 
-        String subLow = (stack.moduleCount > 1) ? ("Battery " + String(a.lowestMod) + ", cell " + String(a.lowestCellIdx)) : ("Cell " + String(a.lowestCellIdx));
-        String subHigh = (stack.moduleCount > 1) ? ("Battery " + String(a.highestMod) + ", cell " + String(a.highestCellIdx)) : ("Cell " + String(a.highestCellIdx));
-        String subLowT = (stack.moduleCount > 1) ? ("Battery " + String(a.minCellTMod) + ", cell " + String(a.minCellTIdx)) : ("Cell " + String(a.minCellTIdx));
-        String subHighT = (stack.moduleCount > 1) ? ("Battery " + String(a.maxCellTMod) + ", cell " + String(a.maxCellTIdx)) : ("Cell " + String(a.maxCellTIdx));
+            String pwrColor = "color:var(--navy);";
+            String pwrCardClass = "card card-navy";
+            if (a.stackPower > 1.0f) {
+                pwrColor = "color:#16a34a;";
+                pwrCardClass = "card card-green";
+            } else if (a.stackPower < -1.0f) {
+                pwrColor = "color:#dc2626;";
+                pwrCardClass = "card card-red";
+            }
 
-        // 2. Summary & Analytics Telemetry Cards (6 columns x 2 rows grid)
-        html += "<div class='grid-dash'>\n";
-
-        // --- Row 1 ---
-        // 1. Average SOC
-        html += "  <div class='card card-navy'><h3>Average SOC</h3><div class='val'><span id='dashSoc'>" + String((int)round(a.avgSoc)) + "</span><span class='unit'>%</span></div></div>\n";
-        // 2. Total Current
-        html += "  <div id='dashCurrCard' class='" + currCardClass + "'><h3>Total Current</h3><div class='val' style='" + currColor + "'><span id='dashCurr'>" + String(a.stackCurr, 2) + "</span><span class='unit'>A</span></div></div>\n";
-        // 3. Highest Cell (Voltage)
-        html += "  <div class='card card-blue'><h3>Highest Cell</h3><div class='val'><span id='dashHighV'>" + strHigh + "</span><span class='unit'>V</span></div><div class='sub' id='dashHighVSub'>" + subHigh + "</div></div>\n";
-        // 4. Highest Cell (Temperature)
-        html += "  <div class='card card-blue'><h3>Highest Cell</h3><div class='val'><span id='dashHighT'>" + (a.foundCellT ? strMaxT : "N/A") + "</span><span id='dashHighTUnit' class='unit'" + (a.foundCellT ? "" : " style='display:none;'") + ">&deg;C</span></div><div class='sub' id='dashHighTSub'>" + (a.foundCellT ? subHighT : "") + "</div></div>\n";
-        // 5. Spread
-        html += "  <div class='card'><h3>Spread</h3><div class='val'><span id='dashSpread'>" + String(a.spreadMv) + "</span><span class='unit'>mV</span></div><div class='sub'>Worst &Delta;V Spread</div></div>\n";
-        // 6. Stack SOH
-        html += "  <div class='card card-teal'><h3>Stack SOH</h3><div class='val'><span id='dashSoh'>" + (a.activeSoh > 0 ? String(a.activeSoh) : "N/A") + "</span><span id='dashSohUnit' class='unit'" + (a.activeSoh > 0 ? "" : " style='display:none;'") + ">%</span></div></div>\n";
-
-        // --- Row 2 ---
-        // 7. Stack Voltage
-        html += "  <div class='card card-green'><h3>Stack Voltage</h3><div class='val'><span id='dashVolt'>" + String(a.stackVolt, 2) + "</span><span class='unit'>V</span></div></div>\n";
-        // 8. Total Power
-        html += "  <div id='dashPwrCard' class='" + pwrCardClass + "'><h3>Total Power</h3><div class='val' style='" + pwrColor + "'><span id='dashPwr'>" + String(a.stackPower, 1) + "</span><span class='unit'>W</span></div></div>\n";
-        // 9. Lowest Cell (Voltage)
-        html += "  <div class='card card-blue'><h3>Lowest Cell</h3><div class='val'><span id='dashLowV'>" + strLow + "</span><span class='unit'>V</span></div><div class='sub' id='dashLowVSub'>" + subLow + "</div></div>\n";
-        // 10. Lowest Cell (Temperature)
-        html += "  <div class='card card-blue'><h3>Lowest Cell</h3><div class='val'><span id='dashLowT'>" + (a.foundCellT ? strMinT : "N/A") + "</span><span id='dashLowTUnit' class='unit'" + (a.foundCellT ? "" : " style='display:none;'") + ">&deg;C</span></div><div class='sub' id='dashLowTSub'>" + (a.foundCellT ? subLowT : "") + "</div></div>\n";
-        // 11. Average
-        html += "  <div class='card'><h3>Average</h3><div class='val'><span id='dashAvg'>" + strAvg + "</span><span class='unit'>V</span></div><div class='sub'>Across all cells</div></div>\n";
-        // 12. Deviation
-        html += "  <div class='card'><h3>Deviation</h3><div class='val'><span id='dashDev'>" + String(a.stdDev, 1) + "</span><span class='unit'>mV</span></div><div class='sub'>Stack cell balance</div></div>\n";
-
-        html += "</div>\n";
-
-        // 3b. 24-Hour Telemetry History Chart
-        html += "<div class='table-card' style='margin-bottom:22px;'>\n";
-        html += "  <div class='table-header' style='flex-wrap:wrap;gap:10px;'>\n";
-        html += "    <div>\n";
-        html += "      <h3 style='display:flex;align-items:center;gap:8px;'><span>📈</span> 24-Hour Telemetry History</h3>\n";
-        html += "      <small id='chartSub' style='color:#718096;font-weight:600;'>Loading telemetry data...</small>\n";
-        html += "    </div>\n";
-        html += "    <div style='display:flex;align-items:center;gap:10px;flex-wrap:wrap;'>\n";
-        html += "      <div class='chart-btn-group'>\n";
-        html += "        <button type='button' class='chart-btn' onclick='setChartRange(3600,this)'>1h</button>\n";
-        html += "        <button type='button' class='chart-btn' onclick='setChartRange(21600,this)'>6h</button>\n";
-        html += "        <button type='button' class='chart-btn' onclick='setChartRange(43200,this)'>12h</button>\n";
-        html += "        <button type='button' class='chart-btn active' onclick='setChartRange(86400,this)'>24h</button>\n";
-        html += "      </div>\n";
-        html += "      <div style='display:flex;gap:12px;align-items:center;font-size:0.84rem;font-weight:600;'>\n";
-        html += "        <label class='chart-leg-soc'><input type='checkbox' id='chkSoc' checked onchange='drawChart()'> <span style='font-size:0.95rem;line-height:1;'>●</span> SOC (%)</label>\n";
-        html += "        <label class='chart-leg-curr'><input type='checkbox' id='chkCurr' checked onchange='drawChart()'> - - Current (A)</label>\n";
-        html += "      </div>\n";
-        html += "    </div>\n";
-        html += "  </div>\n";
-        html += "  <div style='position:relative;padding:12px 14px 14px 14px;background:var(--card);'>\n";
-        html += "    <div style='position:relative;width:100%;height:270px;'>\n";
-        html += "      <canvas id='telemetryCanvas' style='width:100%;height:100%;display:block;'></canvas>\n";
-        html += "      <div id='chartTooltip' style='display:none;position:absolute;pointer-events:none;background:rgba(15,23,42,0.92);color:#fff;border-radius:6px;padding:7px 11px;font-size:0.78rem;box-shadow:0 4px 12px rgba(0,0,0,0.25);z-index:10;white-space:nowrap;line-height:1.4;'></div>\n";
-        html += "    </div>\n";
-        html += "  </div>\n";
-        html += "</div>\n";
-
-        // 4. Modules Table (with Spread renamed and Device links)
-        html += "<div class='table-card'>\n";
-        html += "  <div class='table-header'>\n";
-        html += "    <h3>🔋 Battery Modules Detail</h3>\n";
-        html += "    <small style='color:#718096;font-weight:600;'>Active Modules: <span id='dashActiveMods'>" + String(stack.moduleCount) + "</span> &bull; Click # or Device for Rack View</small>\n";
-        html += "  </div>\n";
-        html += "  <table>\n";
-        html += "    <thead>\n";
-        html += "      <tr><th>#</th><th>Device</th><th>Voltage</th><th>Current</th><th style='white-space:nowrap;'>SOC</th><th>Spread</th><th>Temp</th><th>MOSFET</th><th>Base State</th></tr>\n";
-        html += "    </thead>\n";
-        html += "    <tbody>\n";
-
-        for (uint8_t m = 1; m <= MAX_MODULES; ++m) {
-            const BatteryModule &mod = stack.modules[m];
-            if (!mod.present) continue;
-
-            const ModulePower &p = mod.power;
-            const ModuleInfo &info = mod.info;
-
-            String devName;
-            if (strlen(info.deviceName) > 0) {
-                devName = info.deviceName;
-            } else if (stack.model != MODEL_UNKNOWN && m == stack.activeModuleIndex) {
-                devName = stack.modelName;
+            String pwrStr, pwrUnit;
+            if (fabsf(a.stackPower) >= 1000.0f) {
+                char bufPwr[16];
+                snprintf(bufPwr, sizeof(bufPwr), "%.2f", a.stackPower / 1000.0f);
+                pwrStr = String(bufPwr);
+                pwrUnit = "kW";
             } else {
-                devName = "Device " + String(m);
+                char bufPwr[16];
+                snprintf(bufPwr, sizeof(bufPwr), "%.1f", a.stackPower);
+                pwrStr = String(bufPwr);
+                pwrUnit = "W";
             }
 
-            int vSpread = (p.voltHighMv > p.voltLowMv) ? (p.voltHighMv - p.voltLowMv) : 0;
-            if (vSpread == 0 && mod.cellCountParsed > 0) {
-                uint16_t vMin = 65535, vMax = 0;
-                for (uint8_t c = 0; c < mod.cellCountParsed; ++c) {
-                    if (mod.cells[c].voltMv > 0) {
-                        if (mod.cells[c].voltMv < vMin) vMin = mod.cells[c].voltMv;
-                        if (mod.cells[c].voltMv > vMax) vMax = mod.cells[c].voltMv;
-                    }
+            char bufLow[16], bufHigh[16], bufAvg[16];
+            snprintf(bufLow, sizeof(bufLow), "%.3f", a.lowestCellV / 1000.0f);
+            snprintf(bufHigh, sizeof(bufHigh), "%.3f", a.highestCellV / 1000.0f);
+            snprintf(bufAvg, sizeof(bufAvg), "%.3f", (a.avgCellV > 0) ? (a.avgCellV / 1000.0) : 0.0);
+
+            String strLow = String(bufLow);
+            String strHigh = String(bufHigh);
+            String strAvg = String(bufAvg);
+
+            char bufMinT[16], bufMaxT[16];
+            if (fabsf(a.minCellT - roundf(a.minCellT)) < 0.05f) {
+                snprintf(bufMinT, sizeof(bufMinT), "%d", (int)roundf(a.minCellT));
+            } else {
+                snprintf(bufMinT, sizeof(bufMinT), "%.1f", a.minCellT);
+            }
+            if (fabsf(a.maxCellT - roundf(a.maxCellT)) < 0.05f) {
+                snprintf(bufMaxT, sizeof(bufMaxT), "%d", (int)roundf(a.maxCellT));
+            } else {
+                snprintf(bufMaxT, sizeof(bufMaxT), "%.1f", a.maxCellT);
+            }
+            String strMinT = String(bufMinT);
+            String strMaxT = String(bufMaxT);
+
+            String subLow = (stack.moduleCount > 1) ? ("Battery " + String(a.lowestMod) + ", cell " + String(a.lowestCellIdx)) : ("Cell " + String(a.lowestCellIdx));
+            String subHigh = (stack.moduleCount > 1) ? ("Battery " + String(a.highestMod) + ", cell " + String(a.highestCellIdx)) : ("Cell " + String(a.highestCellIdx));
+            String subLowT = (stack.moduleCount > 1) ? ("Battery " + String(a.minCellTMod) + ", cell " + String(a.minCellTIdx)) : ("Cell " + String(a.minCellTIdx));
+            String subHighT = (stack.moduleCount > 1) ? ("Battery " + String(a.maxCellTMod) + ", cell " + String(a.maxCellTIdx)) : ("Cell " + String(a.maxCellTIdx));
+
+            // 2. Summary & Analytics Telemetry Cards (6 columns x 2 rows grid)
+            html += "<div class='grid-dash'>\n";
+
+            // --- Row 1 ---
+            // 1. Average SOC
+            html += "  <div class='card card-navy'><h3>Average SOC</h3><div class='val'><span id='dashSoc'>" + String((int)round(a.avgSoc)) + "</span><span class='unit'>%</span></div></div>\n";
+            // 2. Total Current
+            html += "  <div id='dashCurrCard' class='" + currCardClass + "'><h3>Total Current</h3><div class='val' style='" + currColor + "'><span id='dashCurr'>" + String(a.stackCurr, 2) + "</span><span class='unit'>A</span></div></div>\n";
+            // 3. Highest Cell (Voltage)
+            html += "  <div class='card card-blue'><h3>Highest Cell</h3><div class='val'><span id='dashHighV'>" + strHigh + "</span><span class='unit'>V</span></div><div class='sub' id='dashHighVSub'>" + subHigh + "</div></div>\n";
+            // 4. Highest Cell (Temperature)
+            html += "  <div class='card card-blue'><h3>Highest Cell</h3><div class='val'><span id='dashHighT'>" + (a.foundCellT ? strMaxT : "N/A") + "</span><span id='dashHighTUnit' class='unit'" + (a.foundCellT ? "" : " style='display:none;'") + ">&deg;C</span></div><div class='sub' id='dashHighTSub'>" + (a.foundCellT ? subHighT : "") + "</div></div>\n";
+            // 5. Spread
+            html += "  <div class='card'><h3>Spread</h3><div class='val'><span id='dashSpread'>" + String(a.spreadMv) + "</span><span class='unit'>mV</span></div><div class='sub'>Worst &Delta;V Spread</div></div>\n";
+            // 6. Stack SOH
+            html += "  <div class='card card-teal'><h3>Stack SOH</h3><div class='val'><span id='dashSoh'>" + (a.activeSoh > 0 ? String(a.activeSoh) : "N/A") + "</span><span id='dashSohUnit' class='unit'" + (a.activeSoh > 0 ? "" : " style='display:none;'") + ">%</span></div></div>\n";
+
+            // --- Row 2 ---
+            // 7. Stack Voltage
+            html += "  <div class='card card-green'><h3>Stack Voltage</h3><div class='val'><span id='dashVolt'>" + String(a.stackVolt, 2) + "</span><span class='unit'>V</span></div></div>\n";
+            // 8. Total Power
+            html += "  <div id='dashPwrCard' class='" + pwrCardClass + "'><h3>Total Power</h3><div class='val' style='" + pwrColor + "'><span id='dashPwr'>" + pwrStr + "</span><span id='dashPwrUnit' class='unit'>" + pwrUnit + "</span></div></div>\n";
+            // 9. Lowest Cell (Voltage)
+            html += "  <div class='card card-blue'><h3>Lowest Cell</h3><div class='val'><span id='dashLowV'>" + strLow + "</span><span class='unit'>V</span></div><div class='sub' id='dashLowVSub'>" + subLow + "</div></div>\n";
+            // 10. Lowest Cell (Temperature)
+            html += "  <div class='card card-blue'><h3>Lowest Cell</h3><div class='val'><span id='dashLowT'>" + (a.foundCellT ? strMinT : "N/A") + "</span><span id='dashLowTUnit' class='unit'" + (a.foundCellT ? "" : " style='display:none;'") + ">&deg;C</span></div><div class='sub' id='dashLowTSub'>" + (a.foundCellT ? subLowT : "") + "</div></div>\n";
+            // 11. Average
+            html += "  <div class='card'><h3>Average</h3><div class='val'><span id='dashAvg'>" + strAvg + "</span><span class='unit'>V</span></div><div class='sub'>Across all cells</div></div>\n";
+            // 12. Deviation
+            html += "  <div class='card'><h3>Deviation</h3><div class='val'><span id='dashDev'>" + String(a.stdDev, 1) + "</span><span class='unit'>mV</span></div><div class='sub'>Stack cell balance</div></div>\n";
+
+            html += "</div>\n";
+
+            // 3b. 24-Hour Telemetry History Chart
+            html += "<div class='table-card' style='margin-bottom:22px;'>\n";
+            html += "  <div class='table-header' style='flex-wrap:wrap;gap:10px;'>\n";
+            html += "    <div>\n";
+            html += "      <h3 style='display:flex;align-items:center;gap:8px;'><span>📈</span> 24-Hour Telemetry History</h3>\n";
+            html += "      <small id='chartSub' style='color:#718096;font-weight:600;'>Loading telemetry data...</small>\n";
+            html += "    </div>\n";
+            html += "    <div style='display:flex;align-items:center;gap:10px;flex-wrap:wrap;'>\n";
+            html += "      <div class='chart-btn-group'>\n";
+            html += "        <button type='button' class='chart-btn' onclick='setChartRange(3600,this)'>1h</button>\n";
+            html += "        <button type='button' class='chart-btn' onclick='setChartRange(21600,this)'>6h</button>\n";
+            html += "        <button type='button' class='chart-btn' onclick='setChartRange(43200,this)'>12h</button>\n";
+            html += "        <button type='button' class='chart-btn active' onclick='setChartRange(86400,this)'>24h</button>\n";
+            html += "      </div>\n";
+            html += "      <div style='display:flex;gap:12px;align-items:center;font-size:0.84rem;font-weight:600;'>\n";
+            html += "        <label class='chart-leg-soc'><input type='checkbox' id='chkSoc' checked onchange='drawChart()'> <span style='font-size:0.95rem;line-height:1;'>●</span> SOC (%)</label>\n";
+            html += "        <label class='chart-leg-curr'><input type='checkbox' id='chkCurr' checked onchange='drawChart()'> - - Current (A)</label>\n";
+            html += "      </div>\n";
+            html += "    </div>\n";
+            html += "  </div>\n";
+            html += "  <div style='position:relative;padding:12px 14px 14px 14px;background:var(--card);'>\n";
+            html += "    <div style='position:relative;width:100%;height:270px;'>\n";
+            html += "      <canvas id='telemetryCanvas' style='width:100%;height:100%;display:block;'></canvas>\n";
+            html += "      <div id='chartTooltip' style='display:none;position:absolute;pointer-events:none;background:rgba(15,23,42,0.92);color:#fff;border-radius:6px;padding:7px 11px;font-size:0.78rem;box-shadow:0 4px 12px rgba(0,0,0,0.25);z-index:10;white-space:nowrap;line-height:1.4;'></div>\n";
+            html += "    </div>\n";
+            html += "  </div>\n";
+            html += "</div>\n";
+
+            // 4. Modules Table (with Spread renamed and Device links)
+            html += "<div class='table-card'>\n";
+            html += "  <div class='table-header'>\n";
+            html += "    <h3>🔋 Battery Modules Detail</h3>\n";
+            html += "    <small style='color:#718096;font-weight:600;'>Active Modules: <span id='dashActiveMods'>" + String(stack.moduleCount) + "</span> &bull; Click # or Device for Rack View</small>\n";
+            html += "  </div>\n";
+            html += "  <table>\n";
+            html += "    <thead>\n";
+            html += "      <tr><th>#</th><th>Device</th><th>Voltage</th><th>Current</th><th style='white-space:nowrap;'>SOC</th><th>Spread</th><th>Temp</th><th>MOSFET</th><th>Base State</th></tr>\n";
+            html += "    </thead>\n";
+            html += "    <tbody>\n";
+
+            for (uint8_t m = 1; m <= MAX_MODULES; ++m) {
+                const BatteryModule &mod = stack.modules[m];
+                if (!mod.present) continue;
+
+                const ModulePower &p = mod.power;
+                const ModuleInfo &info = mod.info;
+
+                String devName;
+                if (strlen(info.deviceName) > 0) {
+                    devName = info.deviceName;
+                } else if (stack.model != MODEL_UNKNOWN && m == stack.activeModuleIndex) {
+                    devName = stack.modelName;
+                } else {
+                    devName = "Device " + String(m);
                 }
-                if (vMax >= vMin && vMin > 0) vSpread = vMax - vMin;
+
+                int vSpread = (p.voltHighMv > p.voltLowMv) ? (p.voltHighMv - p.voltLowMv) : 0;
+                if (vSpread == 0 && mod.cellCountParsed > 0) {
+                    uint16_t vMin = 65535, vMax = 0;
+                    for (uint8_t c = 0; c < mod.cellCountParsed; ++c) {
+                        if (mod.cells[c].voltMv > 0) {
+                            if (mod.cells[c].voltMv < vMin) vMin = mod.cells[c].voltMv;
+                            if (mod.cells[c].voltMv > vMax) vMax = mod.cells[c].voltMv;
+                        }
+                    }
+                    if (vMax >= vMin && vMin > 0) vSpread = vMax - vMin;
+                }
+
+                String spreadBadge = (vSpread <= 30) ? "badge-ok" : ((vSpread <= 50) ? "badge-warn" : "badge-danger");
+
+                String badgeClass = "badge-ok";
+                if (String(p.baseState).equalsIgnoreCase("Charge")) badgeClass = "badge-charge";
+                else if (String(p.baseState).equalsIgnoreCase("Dischg")) badgeClass = "badge-warn";
+
+                float modCurrVal = p.currMa / 1000.0f;
+                String modCurrColor = "color:var(--navy);";
+                if (modCurrVal > 0.05f) modCurrColor = "color:#16a34a;font-weight:700;";
+                else if (modCurrVal < -0.05f) modCurrColor = "color:#dc2626;font-weight:700;";
+
+                int socVal = p.socPercent;
+                if (socVal < 0) socVal = 0;
+                if (socVal > 100) socVal = 100;
+                String batFillCol = (socVal >= 50) ? "#16a34a" : ((socVal >= 20) ? "#f59e0b" : "#dc2626");
+
+                html += "      <tr>\n";
+                html += "        <td><a class='mod-link' href='/module?m=" + String(m) + "'>#" + String(m) + "</a></td>\n";
+                html += "        <td><a class='mod-dev-link' href='/module?m=" + String(m) + "'><b>" + devName + "</b></a></td>\n";
+                html += "        <td id='mVolt_" + String(m) + "'><b>" + String(p.voltMv / 1000.0f, 3) + " V</b></td>\n";
+                html += "        <td id='mCurr_" + String(m) + "' style='" + modCurrColor + "'>" + String(modCurrVal, 2) + " A</td>\n";
+                html += "        <td style='white-space:nowrap;'><div style='display:inline-flex;align-items:center;gap:6px;'><div class='bat-shell'><div id='mBatFill_" + String(m) + "' class='bat-fill' style='width:" + String(socVal) + "%;background:" + batFillCol + ";'></div></div><b id='mSoc_" + String(m) + "'>" + String(socVal) + "%</b></div></td>\n";
+                html += "        <td><span id='mSpread_" + String(m) + "' class='badge " + spreadBadge + "'>" + String(vSpread) + " mV</span></td>\n";
+                html += "        <td id='mTemp_" + String(m) + "'>" + String(p.tempMdeg / 1000.0f, 1) + " °C</td>\n";
+                html += "        <td id='mMos_" + String(m) + "'>" + (p.mosTempMdeg > 0 ? (String(p.mosTempMdeg / 1000.0f, 1) + " °C") : "N/A") + "</td>\n";
+                html += "        <td><span id='mState_" + String(m) + "' class='badge " + badgeClass + "'>" + String(p.baseState) + "</span></td>\n";
+                html += "      </tr>\n";
             }
 
-            String spreadBadge = (vSpread <= 20) ? "badge-ok" : ((vSpread <= 50) ? "badge-warn" : "badge-danger");
-
-            String badgeClass = "badge-ok";
-            if (String(p.baseState).equalsIgnoreCase("Charge")) badgeClass = "badge-charge";
-            else if (String(p.baseState).equalsIgnoreCase("Dischg")) badgeClass = "badge-warn";
-
-            float modCurrVal = p.currMa / 1000.0f;
-            String modCurrColor = "color:var(--navy);";
-            if (modCurrVal > 0.05f) modCurrColor = "color:#16a34a;font-weight:700;";
-            else if (modCurrVal < -0.05f) modCurrColor = "color:#dc2626;font-weight:700;";
-
-            int socVal = p.socPercent;
-            if (socVal < 0) socVal = 0;
-            if (socVal > 100) socVal = 100;
-            String batFillCol = (socVal >= 50) ? "#16a34a" : ((socVal >= 20) ? "#f59e0b" : "#dc2626");
-
-            html += "      <tr>\n";
-            html += "        <td><a class='mod-link' href='/module?m=" + String(m) + "'>#" + String(m) + "</a></td>\n";
-            html += "        <td><a class='mod-dev-link' href='/module?m=" + String(m) + "'><b>" + devName + "</b></a></td>\n";
-            html += "        <td id='mVolt_" + String(m) + "'><b>" + String(p.voltMv / 1000.0f, 3) + " V</b></td>\n";
-            html += "        <td id='mCurr_" + String(m) + "' style='" + modCurrColor + "'>" + String(modCurrVal, 2) + " A</td>\n";
-            html += "        <td style='white-space:nowrap;'><div style='display:inline-flex;align-items:center;gap:6px;'><div class='bat-shell'><div id='mBatFill_" + String(m) + "' class='bat-fill' style='width:" + String(socVal) + "%;background:" + batFillCol + ";'></div></div><b id='mSoc_" + String(m) + "'>" + String(socVal) + "%</b></div></td>\n";
-            html += "        <td><span id='mSpread_" + String(m) + "' class='badge " + spreadBadge + "'>" + String(vSpread) + " mV</span></td>\n";
-            html += "        <td id='mTemp_" + String(m) + "'>" + String(p.tempMdeg / 1000.0f, 1) + " °C</td>\n";
-            html += "        <td id='mMos_" + String(m) + "'>" + (p.mosTempMdeg > 0 ? (String(p.mosTempMdeg / 1000.0f, 1) + " °C") : "N/A") + "</td>\n";
-            html += "        <td><span id='mState_" + String(m) + "' class='badge " + badgeClass + "'>" + String(p.baseState) + "</span></td>\n";
-            html += "      </tr>\n";
+            html += "    </tbody>\n";
+            html += "  </table>\n";
+            html += "</div>\n";
         }
-
-        html += "    </tbody>\n";
-        html += "  </table>\n";
-        html += "</div>\n";
 
         // 5. System Information Card (Placed below Battery Modules Detail table)
         unsigned long totalSec = millis() / 1000;
@@ -1482,14 +1499,15 @@ private:
         }
 
         bool is24h = prefs.getBool(NVS_KEY_TIME_FORMAT_24H, true);
-        html += "<script>var CONFIG_TIME_24H=" + String(is24h ? "true" : "false") + ";</script>\n";
-        html += FPSTR(DASHBOARD_CHART_JS);
-        html += "\n";
-
-        // Live Dashboard AJAX Polling Script
         bool apiAuthEn = prefs.getBool(NVS_KEY_API_AUTH_ENABLED, false);
         String apiTok = apiAuthEn ? prefs.getString(NVS_KEY_API_TOKEN, "") : "";
+        html += "<script>var CONFIG_TIME_24H=" + String(is24h ? "true" : "false") + ";var CONFIG_API_TOKEN='" + apiTok + "';</script>\n";
+        if (stack.moduleCount > 0) {
+            html += FPSTR(DASHBOARD_CHART_JS);
+            html += "\n";
+        }
 
+        // Live Dashboard AJAX Polling Script
         html += "<script>\n";
         html += "(function(){\n";
         html += "  var apiTok = '" + apiTok + "';\n";
@@ -1535,9 +1553,16 @@ private:
         html += "          }\n";
         html += "        }\n";
         html += "        el = document.getElementById('dashVolt'); if (el) el.textContent = s.voltage.toFixed(2);\n";
-        html += "        el = document.getElementById('dashPwr'); card = document.getElementById('dashPwrCard');\n";
+        html += "        el = document.getElementById('dashPwr'); u = document.getElementById('dashPwrUnit'); card = document.getElementById('dashPwrCard');\n";
         html += "        if (el) {\n";
-        html += "          el.textContent = s.power.toFixed(1);\n";
+        html += "          var absP = Math.abs(s.power);\n";
+        html += "          if (absP >= 1000.0) {\n";
+        html += "            el.textContent = (s.power / 1000.0).toFixed(2);\n";
+        html += "            if (u) u.textContent = 'kW';\n";
+        html += "          } else {\n";
+        html += "            el.textContent = s.power.toFixed(1);\n";
+        html += "            if (u) u.textContent = 'W';\n";
+        html += "          }\n";
         html += "          var pCol = 'var(--navy)', pCls = 'card card-navy';\n";
         html += "          if (s.power > 1.0) { pCol = '#16a34a'; pCls = 'card card-green'; }\n";
         html += "          else if (s.power < -1.0) { pCol = '#dc2626'; pCls = 'card card-red'; }\n";
@@ -1616,7 +1641,7 @@ private:
         html += "            var msp = document.getElementById('mSpread_' + id);\n";
         html += "            if (msp) {\n";
         html += "              msp.textContent = m.volt_spread_mv + ' mV';\n";
-        html += "              msp.className = (m.volt_spread_mv <= 20) ? 'badge badge-ok' : ((m.volt_spread_mv <= 50) ? 'badge badge-warn' : 'badge badge-danger');\n";
+        html += "              msp.className = (m.volt_spread_mv <= 30) ? 'badge badge-ok' : ((m.volt_spread_mv <= 50) ? 'badge badge-warn' : 'badge badge-danger');\n";
         html += "            }\n";
         html += "            var mt = document.getElementById('mTemp_' + id); if (mt) mt.textContent = m.temp_c.toFixed(1) + ' °C';\n";
         html += "            var mm = document.getElementById('mMos_' + id); if (mm) mm.textContent = (m.mos_temp_c !== null) ? (m.mos_temp_c.toFixed(1) + ' °C') : 'N/A';\n";
@@ -1726,6 +1751,17 @@ private:
         String mCurrCol = (modCurr > 0.05f) ? "color:#16a34a;" : ((modCurr < -0.05f) ? "color:#dc2626;" : "color:var(--navy);");
         String mPwrCol = (modPower > 1.0f) ? "color:#16a34a;" : ((modPower < -1.0f) ? "color:#dc2626;" : "color:var(--navy);");
 
+        String modPowerStr;
+        if (fabsf(modPower) >= 1000.0f) {
+            char bufP[16];
+            snprintf(bufP, sizeof(bufP), "%.2f kW", modPower / 1000.0f);
+            modPowerStr = String(bufP);
+        } else {
+            char bufP[16];
+            snprintf(bufP, sizeof(bufP), "%.1f W", modPower);
+            modPowerStr = String(bufP);
+        }
+
         String maxLimitsStr = "N/A (Slave)";
         if (info.valid && (info.maxChargeCurrentMa != 0 || info.maxDischargeCurrentMa != 0)) {
             float maxChgA = abs(info.maxChargeCurrentMa) / 1000.0f;
@@ -1740,7 +1776,7 @@ private:
         html += "      <div style='font-size:0.86rem;line-height:1.5;'>\n";
         html += "        <div>Volt: <b id='modVolt'>" + String(modVolt, 2) + " V</b></div>\n";
         html += "        <div>Curr: <b id='modCurr' style='" + mCurrCol + "'>" + String(modCurr, 2) + " A</b></div>\n";
-        html += "        <div>Power: <b id='modPower' style='" + mPwrCol + "'>" + String(modPower, 1) + " W</b></div>\n";
+        html += "        <div>Power: <b id='modPower' style='" + mPwrCol + "'>" + modPowerStr + "</b></div>\n";
         html += "        <div>Limits: <b>" + maxLimitsStr + "</b></div>\n";
         html += "      </div>\n";
         html += "    </div>\n";
@@ -2044,7 +2080,7 @@ private:
         html += "        el = document.getElementById('modGaugeCircle'); if (el) el.setAttribute('stroke-dashoffset', (263.89 - (263.89 * d.soc / 100.0)).toFixed(1));\n";
         html += "        el = document.getElementById('modVolt'); if (el) el.textContent = d.volt.toFixed(2) + ' V';\n";
         html += "        el = document.getElementById('modCurr'); if (el) { el.textContent = d.curr.toFixed(2) + ' A'; el.style.color = (d.curr > 0.05) ? '#16a34a' : ((d.curr < -0.05) ? '#dc2626' : 'var(--navy)'); }\n";
-        html += "        el = document.getElementById('modPower'); if (el) { el.textContent = d.power.toFixed(1) + ' W'; el.style.color = (d.power > 1.0) ? '#16a34a' : ((d.power < -1.0) ? '#dc2626' : 'var(--navy)'); }\n";
+        html += "        el = document.getElementById('modPower'); if (el) { var absP = Math.abs(d.power); el.textContent = (absP >= 1000.0) ? ((d.power / 1000.0).toFixed(2) + ' kW') : (d.power.toFixed(1) + ' W'); el.style.color = (d.power > 1.0) ? '#16a34a' : ((d.power < -1.0) ? '#dc2626' : 'var(--navy)'); }\n";
         html += "        el = document.getElementById('modSpread'); if (el) el.textContent = d.v_spread + ' mV';\n";
         html += "        el = document.getElementById('modPackTemp'); if (el) el.textContent = d.pack_temp.toFixed(1) + ' °C';\n";
         html += "        el = document.getElementById('modMosTemp'); if (el) el.textContent = (d.mos_temp !== null) ? (d.mos_temp.toFixed(1) + ' °C') : 'N/A';\n";
@@ -2705,7 +2741,7 @@ private:
         // JavaScript for Console, Syntax Colors & Theme
         html += "<script>\n";
         html += "let intervalId=null;\n";
-        html += "function colorize(raw){if(!raw)return'';raw=raw.replace(/\\r+/g,'');let lines=raw.split('\\n');let out='';for(let i=0;i<lines.length;i++){let l=lines[i];if(l.trim()===''){out+='\\n';continue;}let esc=l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');esc=esc.replace(/^(\\[\\d{4}-\\d{2}-\\d{2}[^\\]]+\\]|\\[\\d{2}:\\d{2}:\\d{2}\\])/,'<span class=\"ts\">$1</span>');if(l.indexOf('[ERROR]')!==-1){out+='<span class=\"line-err\">'+esc+'</span>\\n';}else if(l.indexOf('TX &gt;&gt;')!==-1||l.indexOf('TX >>')!==-1){out+='<span class=\"line-tx\">'+esc+'</span>\\n';}else if(l.indexOf('[SYSTEM]')!==-1){out+='<span class=\"line-sys\">'+esc+'</span>\\n';}else if(l.indexOf('[INFO]')!==-1){out+='<span class=\"line-info\">'+esc+'</span>\\n';}else{out+=esc+'\\n';}}return out;}\n";
+        html += "function colorize(raw){if(!raw)return'';raw=raw.replace(/\\r+/g,'');let lines=raw.split('\\n');let out='';for(let i=0;i<lines.length;i++){let l=lines[i];if(l.trim()===''){out+='\\n';continue;}let esc=l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');esc=esc.replace(/^(\\[\\d{4}-\\d{2}-\\d{2}[^\\]]+\\]|\\[\\d{2}:\\d{2}:\\d{2}\\])/,'<span class=\"ts\">$1</span>');if(l.indexOf('[ERROR]')!==-1){out+='<span class=\"line-err\">'+esc+'</span>\\n';}else if(l.indexOf('[WARN]')!==-1||l.indexOf('[SECURITY]')!==-1){out+='<span class=\"line-warn\">'+esc+'</span>\\n';}else if(l.indexOf('TX &gt;&gt;')!==-1||l.indexOf('TX >>')!==-1){out+='<span class=\"line-tx\">'+esc+'</span>\\n';}else if(l.indexOf('[SYSTEM]')!==-1){out+='<span class=\"line-sys\">'+esc+'</span>\\n';}else if(l.indexOf('[INFO]')!==-1){out+='<span class=\"line-info\">'+esc+'</span>\\n';}else{out+=esc+'\\n';}}return out;}\n";
         html += "function updateContent(text){let el=document.getElementById('consoleOutput');let isAtBottom=(el.scrollHeight-el.scrollTop<=el.clientHeight+60);el.innerHTML=colorize(text);if(isAtBottom){el.scrollTop=el.scrollHeight;}}\n";
         html += "function sendCmd(c){fetch('/cmd?c='+encodeURIComponent(c)+'&ajax=1').then(()=>{setTimeout(fetchLogNow,400);});}\n";
         html += "function sendCustom(){let inp=document.getElementById('customCmd');let c=inp.value.trim();if(c){sendCmd(c);inp.value='';}}\n";

@@ -142,10 +142,50 @@ public:
         return KEY_PWR_UNKNOWN;
     }
 
+    // Check whether response ended with standard Pylontech prompt / frame delimiter
+    static bool isResponseComplete(const String &response) {
+        if (response.indexOf("$$") >= 0 || response.indexOf("pylon>") >= 0) {
+            return true;
+        }
+        return false;
+    }
+
+    // Check whether BMS reported an error or unsupported command
+    static bool isCommandRejected(const String &response) {
+        if (response.indexOf("Invalid command") >= 0 || 
+            response.indexOf("fail to excute") >= 0 || 
+            response.indexOf("fail to execute") >= 0 ||
+            response.indexOf("Fail to get") >= 0 ||
+            response.indexOf("Cann't get") >= 0 ||
+            response.indexOf("Cannot get") >= 0 ||
+            response.indexOf("Device address error") >= 0 ||
+            response.indexOf("parameter error") >= 0 ||
+            (response.indexOf("Usage:") >= 0 && response.indexOf("info") >= 0)) {
+            return true;
+        }
+        return false;
+    }
+
+    // Check whether command completed with explicit success string
+    static bool isCommandSuccessful(const String &response) {
+        if (isCommandRejected(response)) return false;
+        if (!isResponseComplete(response)) return false;
+        if (response.indexOf("completed successfully") >= 0 || 
+            response.indexOf("Completed successfully") >= 0 ||
+            response.indexOf("successful") >= 0) {
+            return true;
+        }
+        return true;
+    }
+
     // =========================================================================
     // 1. parseInfo — Device & Stack Metadata
     // =========================================================================
     static bool parseInfo(const String &response, BatteryStack &stack, uint8_t targetModule = 0) {
+        if (isCommandRejected(response) || (!isResponseComplete(response) && !isCommandSuccessful(response))) {
+            return false;
+        }
+
         if (targetModule == 0) {
             targetModule = stack.activeModuleIndex;
         }
@@ -242,6 +282,10 @@ public:
     // 2. parsePwr — Dynamic Header-Driven Table & Key-Value Parser
     // =========================================================================
     static bool parsePwr(const String &response, BatteryStack &stack) {
+        if (isCommandRejected(response) || (!isResponseComplete(response) && !isCommandSuccessful(response))) {
+            return false;
+        }
+
         int startPos = 0;
         uint8_t detectedCount = 0;
         uint8_t currentModIdx = stack.activeModuleIndex;
@@ -440,6 +484,10 @@ public:
     // 3. parseStat — Diagnostic Counters & Lifetime Statistics
     // =========================================================================
     static bool parseStat(const String &response, BatteryStack &stack, uint8_t targetModule = 0) {
+        if (isCommandRejected(response) || (!isResponseComplete(response) && !isCommandSuccessful(response))) {
+            return false;
+        }
+
         if (targetModule == 0) {
             targetModule = stack.activeModuleIndex;
         }
@@ -627,6 +675,10 @@ public:
     // 4. parseSoh — Cell SOH Status & Degradation Counters (Model C)
     // =========================================================================
     static bool parseSoh(const String &response, BatteryStack &stack, uint8_t targetModule = 0) {
+        if (isCommandRejected(response) || (!isResponseComplete(response) && !isCommandSuccessful(response))) {
+            return false;
+        }
+
         if (targetModule == 0) targetModule = stack.activeModuleIndex;
 
         int pwrPos = response.indexOf("Power");
@@ -691,6 +743,10 @@ public:
     // 5. parseBat — Cell Voltages, Currents, Temps & Balancing
     // =========================================================================
     static bool parseBat(const String &response, BatteryStack &stack, uint8_t targetModule = 0) {
+        if (isCommandRejected(response)) {
+            return false;
+        }
+
         if (targetModule == 0) {
             targetModule = stack.activeModuleIndex;
         }
@@ -700,6 +756,12 @@ public:
 
         int startPos = 0;
         uint8_t cellsParsed = 0;
+        CellInfo tempCells[MAX_CELLS_PER_MODULE];
+        memset(tempCells, 0, sizeof(tempCells));
+        char tempBaseSt[16] = {0};
+        char tempVoltSt[16] = {0};
+        char tempCurrSt[16] = {0};
+        char tempTempSt[16] = {0};
 
         while (startPos < response.length()) {
             int endPos = response.indexOf('\n', startPos);
@@ -708,7 +770,7 @@ public:
             startPos = endPos + 1;
             trimStr(line);
 
-            if (line.length() == 0 || line.startsWith("Battery") || line.startsWith("bat") || line.startsWith("@") || line.startsWith("$")) {
+            if (line.length() == 0 || line.startsWith("Battery") || line.startsWith("bat") || line.startsWith("@") || line.startsWith("$") || line.startsWith("Command")) {
                 continue;
             }
 
@@ -720,7 +782,7 @@ public:
             long cellIdx = strtol(t[0].c_str(), &endptr, 10);
             if (*endptr != '\0' || cellIdx < 0 || cellIdx >= MAX_CELLS_PER_MODULE) continue;
 
-            CellInfo &c = mod.cells[cellIdx];
+            CellInfo &c = tempCells[cellIdx];
             c.voltMv = t[1].toInt();
             c.currMa = t[2].toInt();
             c.tempMdeg = t[3].toInt();
@@ -741,22 +803,50 @@ public:
 
             // Copy status strings from first cell as fallback for ModulePower
             if (cellsParsed == 0 && t.size() >= 8) {
-                ModulePower &p = mod.power;
-                if (p.baseState[0] == '\0') strncpy(p.baseState, t[4].c_str(), sizeof(p.baseState) - 1);
-                if (p.voltState[0] == '\0') strncpy(p.voltState, t[5].c_str(), sizeof(p.voltState) - 1);
-                if (p.currState[0] == '\0') strncpy(p.currState, t[6].c_str(), sizeof(p.currState) - 1);
-                if (p.tempState[0] == '\0') strncpy(p.tempState, t[7].c_str(), sizeof(p.tempState) - 1);
+                strncpy(tempBaseSt, t[4].c_str(), sizeof(tempBaseSt) - 1);
+                strncpy(tempVoltSt, t[5].c_str(), sizeof(tempVoltSt) - 1);
+                strncpy(tempCurrSt, t[6].c_str(), sizeof(tempCurrSt) - 1);
+                strncpy(tempTempSt, t[7].c_str(), sizeof(tempTempSt) - 1);
             }
             cellsParsed++;
         }
-        mod.cellCountParsed = cellsParsed;
-        return (cellsParsed > 0);
+
+        // Validate completeness:
+        // Expected cell count (usually 15 for US2000/US3000, 16 for UP5000)
+        uint8_t expectedCells = (mod.info.cellCount >= 8 && mod.info.cellCount <= MAX_CELLS_PER_MODULE) ? mod.info.cellCount : 15;
+        bool isComplete = isResponseComplete(response) || isCommandSuccessful(response);
+
+        // If not all cells were received and completion marker is missing, reject truncated payload
+        if (cellsParsed < expectedCells && !isComplete) {
+            return false;
+        }
+
+        if (cellsParsed > 0) {
+            for (uint8_t i = 0; i < MAX_CELLS_PER_MODULE; ++i) {
+                if (tempCells[i].voltMv > 0) {
+                    mod.cells[i] = tempCells[i];
+                }
+            }
+            mod.cellCountParsed = cellsParsed;
+            ModulePower &p = mod.power;
+            if (p.baseState[0] == '\0' && tempBaseSt[0] != '\0') strncpy(p.baseState, tempBaseSt, sizeof(p.baseState) - 1);
+            if (p.voltState[0] == '\0' && tempVoltSt[0] != '\0') strncpy(p.voltState, tempVoltSt, sizeof(p.voltState) - 1);
+            if (p.currState[0] == '\0' && tempCurrSt[0] != '\0') strncpy(p.currState, tempCurrSt, sizeof(p.currState) - 1);
+            if (p.tempState[0] == '\0' && tempTempSt[0] != '\0') strncpy(p.tempState, tempTempSt, sizeof(p.tempState) - 1);
+            return true;
+        }
+
+        return false;
     }
 
     // =========================================================================
     // 6. parseEuro — European Efficiency & Energy Counters (Model D)
     // =========================================================================
     static bool parseEuro(const String &response, BatteryStack &stack, uint8_t targetModule = 1) {
+        if (isCommandRejected(response) || (!isResponseComplete(response) && !isCommandSuccessful(response))) {
+            return false;
+        }
+
         if (targetModule < 1 || targetModule > MAX_MODULES) targetModule = 1;
         BatteryModule &mod = stack.modules[targetModule];
         EuroStats &euro = mod.euro;

@@ -34,8 +34,8 @@
 #endif
 
 #define SERIAL_BAUD_RATE            115200
-#define SERIAL_TIMEOUT_MS           2500
-#define SERIAL_RX_BUFFER_SIZE       2048
+#define SERIAL_TIMEOUT_MS           3500
+#define SERIAL_RX_BUFFER_SIZE       4096
 
 #define DEBUG_BAUD_RATE             115200  // USB UART debug console baud rate
 
@@ -139,6 +139,30 @@ inline String getDeviceHostname(Preferences &prefs) {
     host.toLowerCase();
     return host;
 }
+
+// =============================================================================
+// Security: Dangerous BMS Console Commands Blacklist
+// =============================================================================
+// Dangerous commands that could disconnect power MOSFETs, reboot BMS, enter bootloader,
+// or alter ADC calibration. These are blocked by default from the web/API console.
+// Technicians can unlock full access by issuing 'login debug' (and relock via 'logout'/'exit').
+static const char* const BLOCKED_CONSOLE_COMMANDS[] = {
+    "shut",      // Shutdown battery (disconnects power MOSFETs)
+    "trst",      // Test / Total BMS reset
+    "rst",       // Reset BMS
+    "reset",     // Reset BMS
+    "update",    // Bootloader / Firmware update mode
+    "boot",      // Bootloader mode
+    "cali",      // Calibration mode (can corrupt ADC & cell voltage measurements)
+    "calib",     // Calibration mode
+    "sleep",     // Deep sleep mode
+    "poweroff",  // Power off module
+    "format",    // Erase Flash / logs
+    "erase",     // Erase Flash / logs
+    "chg",       // Manual charge override
+    "dsg"        // Manual discharge override
+};
+#define BLOCKED_COMMANDS_COUNT (sizeof(BLOCKED_CONSOLE_COMMANDS) / sizeof(BLOCKED_CONSOLE_COMMANDS[0]))
 
 
 

@@ -101,6 +101,10 @@ public:
         append("[" + formatTime() + "] [INFO] " + msg + "\n");
     }
 
+    void logWarn(const String &warn) {
+        append("[" + formatTime() + "] [WARN] " + warn + "\n");
+    }
+
     void logError(const String &err) {
         append("[" + formatTime() + "] [ERROR] " + err + "\n");
     }

@@ -361,6 +361,9 @@ curl -s -i "http://192.168.1.150/toggle_pause"
 
 Enqueues an arbitrary Pylontech console command into the asynchronous non-blocking FIFO queue. Commands are dispatched between scheduled poll cycles to prevent UART frame collisions.
 
+> [!NOTE]
+> **Safety Guardrail:** Destructive/dangerous commands (`shut`, `trst`, `rst`, `reset`, `update`, `boot`, `cali`, `calib`, `sleep`, `poweroff`, `format`, `erase`, `chg`, `dsg`) are blocked by default to prevent accidental shutdown or ADC corruption. Technicians can unlock full access by issuing `login debug` (and relock via `logout` or `exit`).
+
 #### Query / Form Parameters:
 * `c` *(string, required)*: Command string (e.g. `stat`, `info`, `bat`, `pwr`, `soh`, `euro`, `bat 1`).
 * `ajax` *(string, optional)*: If set to `1`, responds with plain-text `"QUEUED"` instead of a 303 HTTP redirect.

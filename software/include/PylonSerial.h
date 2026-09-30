@@ -16,6 +16,7 @@ private:
     uint8_t rxPin = PIN_UART_RX;
     std::queue<String> userCmdQueue;
     bool portBusy = false;
+    bool debugModeUnlocked = false;
 
     void setLedSerial(bool on) {
         digitalWrite(PIN_LED_SERIAL, on ? LED_ACTIVE_LEVEL : !LED_ACTIVE_LEVEL);
@@ -25,8 +26,55 @@ public:
     uint8_t getTxPin() const { return txPin; }
     uint8_t getRxPin() const { return rxPin; }
     bool isBusy() const { return portBusy; }
+    bool isDebugUnlocked() const { return debugModeUnlocked; }
 
-    void enqueueUserCommand(const String &cmd) {
+    static bool isBlockedCommand(const String &cmd) {
+        String cleanCmd = cmd;
+        cleanCmd.trim();
+        cleanCmd.toLowerCase();
+        if (cleanCmd.length() == 0) return false;
+
+        int spaceIdx = cleanCmd.indexOf(' ');
+        int tabIdx = cleanCmd.indexOf('\t');
+        int splitIdx = -1;
+        if (spaceIdx >= 0 && tabIdx >= 0) splitIdx = min(spaceIdx, tabIdx);
+        else if (spaceIdx >= 0) splitIdx = spaceIdx;
+        else if (tabIdx >= 0) splitIdx = tabIdx;
+
+        String baseToken = (splitIdx >= 0) ? cleanCmd.substring(0, splitIdx) : cleanCmd;
+        baseToken.trim();
+
+        for (size_t i = 0; i < BLOCKED_COMMANDS_COUNT; ++i) {
+            if (baseToken.equals(BLOCKED_CONSOLE_COMMANDS[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void enqueueUserCommand(const String &rawCmd) {
+        String cmd = rawCmd;
+        cmd.trim();
+        if (cmd.length() == 0) return;
+
+        String lowerCmd = cmd;
+        lowerCmd.toLowerCase();
+
+        // Check for debug login unlock / lock
+        if (lowerCmd.startsWith("login debug") || lowerCmd.equals("login")) {
+            debugModeUnlocked = true;
+            consoleLog.logWarn("[SECURITY] Debug mode unlocked: safety command filters disabled for this session.");
+        } else if (lowerCmd.equals("logout") || lowerCmd.equals("exit") || lowerCmd.equals("quit")) {
+            debugModeUnlocked = false;
+            consoleLog.logInfo("[SECURITY] Debug mode locked: safety command filters enabled.");
+        }
+
+        // If not in debug mode, check against blocked commands
+        if (!debugModeUnlocked && isBlockedCommand(cmd)) {
+            consoleLog.logWarn("[SECURITY] Command '" + cmd + "' is blocked for battery safety. Type 'login debug' to unlock.");
+            return;
+        }
+
         if (userCmdQueue.size() < 16) {
             userCmdQueue.push(cmd);
         } else {
@@ -102,20 +150,22 @@ public:
         port->flush();
 
         String response;
-        response.reserve(2048);
+        response.reserve(4096);
 
         uint32_t startTime = millis();
         uint32_t lastByteTime = millis();
         size_t bytesRead = 0;
 
         while (millis() - startTime < timeoutMs) {
-            yieldSystemTasks();
+            bool readAny = false;
 
-            if (port->available()) {
+            // Fast drain of UART buffer to avoid RX FIFO overflow
+            while (port->available()) {
                 char c = port->read();
                 response += c;
                 bytesRead++;
                 lastByteTime = millis();
+                readAny = true;
 
                 // Pylontech completion markers:
                 if (response.endsWith("$$\n") || response.endsWith("$$\r\n") || 
@@ -123,12 +173,27 @@ public:
                     response.endsWith("pylon>") || response.endsWith("pylon> ")) {
                     break;
                 }
+            }
+
+            if (response.endsWith("$$\n") || response.endsWith("$$\r\n") || 
+                response.endsWith("$$\r") || response.endsWith("$$") ||
+                response.endsWith("pylon>") || response.endsWith("pylon> ")) {
+                break;
+            }
+
+            if (readAny) {
+                // If data is actively arriving, yield quickly to RTOS without running heavy web server tasks
+                vTaskDelay(1);
             } else {
+                // When UART is idle/waiting for next chunk, service background network tasks
+                yieldSystemTasks();
+
                 // If 0 bytes received after 1200ms, abort early (battery disconnected / not responding)
                 if (bytesRead == 0 && (millis() - startTime > 1200)) {
                     break;
                 }
-                if (response.length() > 30 && (millis() - lastByteTime > (bytesRead > 200 ? 800 : 400))) {
+                // If silence after receiving data exceeds 1500ms, abort (safety fallback if marker missing)
+                if (bytesRead > 0 && (millis() - lastByteTime > 1500)) {
                     break;
                 }
                 delay(2);
@@ -139,6 +204,9 @@ public:
 
         if (response.length() > 0) {
             consoleLog.logRx(response);
+            if (!PylonParser::isResponseComplete(response)) {
+                consoleLog.logWarn("Command '" + cmd + "' response incomplete (missing '$$' completion marker)");
+            }
         } else {
             consoleLog.logError("No response received for command: " + cmd + " (timeout " + String(timeoutMs) + "ms, 0 bytes read on TX=" + String(txPin) + ", RX=" + String(rxPin) + ")");
         }
@@ -171,40 +239,46 @@ public:
         // Step 1: Detect Model if unknown
         if (stack.model == MODEL_UNKNOWN) {
             String respInfo = sendCommand("info");
-            if (respInfo.length() > 0) {
-                PylonParser::parseInfo(respInfo, stack, 0);
+            if (respInfo.length() > 0 && PylonParser::parseInfo(respInfo, stack, 0)) {
                 consoleLog.logInfo("Detected battery model: " + String(stack.modelName));
             } else {
-                consoleLog.logError("No response on 'info' command");
+                consoleLog.logError("No valid response on 'info' command");
             }
             drainUserQueue();
         }
 
         // Step 2: Read Power table (pwr) -> dynamic values: V, I, SOC, Status (ALWAYS)
         String respPwr = sendCommand("pwr");
-        if (respPwr.length() < 10) {
+        if (respPwr.length() < 10 || !PylonParser::parsePwr(respPwr, stack)) {
             stack.scrapeSuccess = false;
             consoleLog.logError("Failed to read 'pwr' table - skipping module polling");
             return false;
         }
 
-        PylonParser::parsePwr(respPwr, stack);
         consoleLog.logInfo("Modules detected: " + String(stack.moduleCount) + (stack.isMaster ? " (Master Stack)" : " (Single Unit)"));
         drainUserQueue();
 
         uint8_t targetMod = stack.activeModuleIndex;
         if (targetMod < 1 || targetMod > MAX_MODULES) targetMod = 1;
 
+        bool fastPollOk = true;
+
         // Step 3: Dynamic cell telemetry (bat) -> cell voltages, temps, balancing (ALWAYS in fast poll)
         String respBat = sendCommand("bat");
-        PylonParser::parseBat(respBat, stack, targetMod);
+        if (!PylonParser::parseBat(respBat, stack, targetMod)) {
+            fastPollOk = false;
+            consoleLog.logWarn("Failed or incomplete cell telemetry for module " + String(targetMod));
+        }
         drainUserQueue();
 
         if (stack.isMaster && stack.moduleCount > 1) {
             for (uint8_t n = 1; n <= stack.moduleCount && n <= MAX_MODULES; ++n) {
                 if (!stack.modules[n].present || n == targetMod) continue;
                 String rBatN = sendCommand("bat " + String(n));
-                PylonParser::parseBat(rBatN, stack, n);
+                if (!PylonParser::parseBat(rBatN, stack, n)) {
+                    fastPollOk = false;
+                    consoleLog.logWarn("Failed or incomplete cell telemetry for module " + String(n));
+                }
                 drainUserQueue();
             }
         }
@@ -261,10 +335,10 @@ public:
         stack.scrapeDurationMs = millis() - startTime;
         stack.lastScrapeMillis = millis();
         stack.lastScrapeTimestamp = time(nullptr);
-        stack.scrapeSuccess = true;
+        stack.scrapeSuccess = fastPollOk;
 
-        consoleLog.logInfo("Poll cycle completed successfully in " + String(stack.scrapeDurationMs) + " ms");
-        return true;
+        consoleLog.logInfo("Poll cycle completed " + String(fastPollOk ? "successfully" : "with warnings") + " in " + String(stack.scrapeDurationMs) + " ms");
+        return fastPollOk;
     }
 
     bool pollModuleOnDemand(BatteryStack &stack, uint8_t modIndex) {
