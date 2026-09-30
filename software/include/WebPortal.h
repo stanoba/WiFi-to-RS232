@@ -141,11 +141,11 @@ html.dark .ap-banner a{color:#fbbf24;}
 @media(max-width:1100px){.grid-dash{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:640px){.grid-dash{grid-template-columns:repeat(2,1fr);gap:10px;}}
 @media(max-width:400px){.grid-dash{grid-template-columns:1fr;}}
-.grid-dash .card{padding:14px 15px 12px 15px;display:flex;flex-direction:column;justify-content:flex-start;min-height:102px;}
-.grid-dash .card h3{margin:0 0 6px 0;font-size:0.84rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-dash .card .val{font-size:1.85rem;font-weight:800;color:var(--navy);display:flex;align-items:baseline;line-height:1.15;}
-.grid-dash .card .sub{font-size:0.80rem;color:#718096;margin-top:auto;padding-top:4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-dash .card .unit{font-size:1.00rem;color:#718096;margin-left:5px;font-weight:600;}
+.grid-dash .card{padding:14px 15px 12px 15px;display:flex;flex-direction:column;justify-content:flex-start;min-height:104px;}
+.grid-dash .card h3{margin:0 0 6px 0;font-size:0.80rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.grid-dash .card .val{font-size:2.05rem;font-weight:800;color:var(--navy);display:flex;align-items:baseline;line-height:1.15;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-0.02em;}
+.grid-dash .card .sub{font-size:0.82rem;color:#718096;margin-top:auto;padding-top:4px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.grid-dash .card .unit{font-size:1.10rem;color:#718096;margin-left:5px;font-weight:500;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:0 4px 12px rgba(23,28,97,0.04);position:relative;overflow:hidden;}
 html.dark .card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--teal);}
@@ -156,10 +156,10 @@ html.dark .card{box-shadow:0 4px 14px rgba(0,0,0,0.3);}
 .card.card-blue::before{background:#2563eb;}
 .card.card-power::before{background:#00b3ba;}
 .card.card-red::before{background:#dc2626;}
-.card h3{margin:0 0 8px 0;font-size:0.92rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;}
-.card .val{font-size:1.80rem;font-weight:700;color:var(--navy);display:flex;align-items:baseline;}
-.card .sub{font-size:0.80rem;color:#718096;margin-top:4px;font-weight:500;}
-.card .unit{font-size:0.95rem;color:#718096;margin-left:5px;font-weight:500;}
+.card h3{margin:0 0 8px 0;font-size:0.80rem;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;}
+.card .val{font-size:2.00rem;font-weight:700;color:var(--navy);display:flex;align-items:baseline;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-0.02em;}
+.card .sub{font-size:0.82rem;color:#718096;margin-top:4px;font-weight:500;}
+.card .unit{font-size:1.05rem;color:#718096;margin-left:5px;font-weight:500;font-family:Consolas,'Cascadia Mono','Cascadia Code',ui-monospace,'SFMono-Regular',Menlo,'Courier New',monospace;}
 html.dark .card h3, html.dark .grid-dash .card h3{color:#94a3b8;}
 html.dark .card .sub, html.dark .grid-dash .card .sub, html.dark .grid-dash .card .unit{color:#94a3b8;}
 .scrape-banner{background:#f0fdfa;border:1.5px solid var(--teal);border-left:5px solid var(--teal);color:var(--navy);padding:10px 16px;border-radius:8px;margin-bottom:18px;font-size:0.88rem;display:flex;align-items:center;justify-content:space-between;gap:14px;}
@@ -1989,15 +1989,15 @@ private:
             html += "          <div id='cFill_" + String(c) + "' style='position:absolute;bottom:0;left:0;right:0;height:" + String(fill) + "%;background:linear-gradient(180deg," + tempColor + ",#00b3ba);opacity:0.88;transition:all 0.3s;'></div>\n";
 
             // Cell Data Labels
-            html += "          <div style='position:relative;z-index:2;width:100%;text-align:center;color:#ffffff;font-size:0.72rem;font-weight:700;line-height:1.3;padding:6px 1px;display:flex;flex-direction:column;gap:3px;'>\n";
+            html += "          <div style='position:relative;z-index:2;width:100%;text-align:center;color:#ffffff;font-size:0.80rem;font-weight:700;line-height:1.3;padding:6px 1px;display:flex;flex-direction:column;gap:3px;font-family:Consolas,&quot;Cascadia Mono&quot;,&quot;Cascadia Code&quot;,ui-monospace,Menlo,&quot;Courier New&quot;,monospace;'>\n";
             String vCellStr = String(v / 1000.0f, 3);
             uint8_t cSoc = mod.cells[c].socPercent;
             if (cSoc == 0 && mod.power.valid && mod.power.socPercent > 0 && mod.cells[c].coulombMah == 0) {
                 cSoc = mod.power.socPercent;
             }
-            html += "            <div id='cSoc_" + String(c) + "' style='font-size:0.68rem;color:#ffffff;font-weight:700;'>" + (v > 0 ? (String(cSoc) + "%") : "--%") + "</div>\n";
-            html += "            <div id='cVolt_" + String(c) + "'>" + (v > 0 ? (vCellStr + "V") : "--V") + "</div>\n";
-            html += "            <div id='cTemp_" + String(c) + "' style='font-size:0.68rem;color:#cbd5e1;'>" + String(t, 1) + " °C</div>\n";
+            html += "            <div id='cSoc_" + String(c) + "' style='font-size:0.76rem;color:#ffffff;font-weight:700;'>" + (v > 0 ? (String(cSoc) + "%") : "--%") + "</div>\n";
+            html += "            <div id='cVolt_" + String(c) + "' style='font-size:0.82rem;font-variant-numeric:tabular-nums;font-feature-settings:&quot;tnum&quot;;'>" + (v > 0 ? (vCellStr + "V") : "--V") + "</div>\n";
+            html += "            <div id='cTemp_" + String(c) + "' style='font-size:0.75rem;color:#cbd5e1;'>" + String(t, 1) + " °C</div>\n";
 
             // SOH per cell (supported on models with soh command, e.g. US3000C, US2000C)
             const ModelProfile *prof = getModelProfile(stack.model);
@@ -2005,24 +2005,24 @@ private:
             if (showCellSoh) {
                 if (mod.cells[c].sohValid) {
                     if (mod.cells[c].sohCount > 0) {
-                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.64rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: <b style='color:#ef4444;'>" + String(mod.cells[c].sohCount) + "</b></div>\n";
+                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.70rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: <b style='color:#ef4444;'>" + String(mod.cells[c].sohCount) + "</b></div>\n";
                     } else {
-                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.64rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: 0</div>\n";
+                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.70rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: 0</div>\n";
                     }
                 } else {
-                    html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.64rem;font-weight:700;color:#64748b;' title='SOH not yet polled'>SOH: -</div>\n";
+                    html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.70rem;font-weight:700;color:#64748b;' title='SOH not yet polled'>SOH: -</div>\n";
                 }
             }
 
             if (bal) {
-                html += "            <span id='cBal_" + String(c) + "' style='background:#f59e0b;color:#000000;font-size:0.62rem;font-weight:800;border-radius:3px;padding:1px 3px;margin:2px auto;line-height:1;'>BAL</span>\n";
+                html += "            <span id='cBal_" + String(c) + "' style='background:#f59e0b;color:#000000;font-size:0.68rem;font-weight:800;border-radius:3px;padding:1px 3px;margin:2px auto;line-height:1;'>BAL</span>\n";
             } else {
-                html += "            <span id='cBal_" + String(c) + "' style='visibility:hidden;font-size:0.62rem;font-weight:800;border-radius:3px;padding:1px 3px;margin:2px auto;line-height:1;'>BAL</span>\n";
+                html += "            <span id='cBal_" + String(c) + "' style='visibility:hidden;font-size:0.68rem;font-weight:800;border-radius:3px;padding:1px 3px;margin:2px auto;line-height:1;'>BAL</span>\n";
             }
             html += "          </div>\n";
 
             html += "        </div>\n";
-            html += "        <div style='font-size:0.75rem;font-weight:700;color:#94a3b8;margin-top:6px;'>" + String(c) + "</div>\n";
+            html += "        <div style='font-size:0.84rem;font-weight:700;color:#94a3b8;margin-top:6px;'>" + String(c) + "</div>\n";
             html += "      </div>\n";
         }
 
@@ -2824,7 +2824,7 @@ private:
 
         // Terminal Output Card (Responsive percentage height: 62vh, min 480px)
         html += "<div id='termWrap' class='term-dark' style='border-radius:10px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,0.15);overflow:hidden;display:flex;flex-direction:column;height:62vh;min-height:480px;'>\n";
-        html += "  <pre id='consoleOutput' style='margin:0;font-family:SFMono-Regular,Consolas,Monaco,monospace;font-size:0.88rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;height:100%;overflow-y:auto;'></pre>\n";
+        html += "  <pre id='consoleOutput' style='margin:0;font-family:\"Cascadia Mono\",\"Cascadia Code\",ui-monospace,\"SFMono-Regular\",\"JetBrains Mono\",Menlo,Consolas,\"Courier New\",monospace;font-size:0.88rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;height:100%;overflow-y:auto;'></pre>\n";
         html += "</div>\n";
 
         // JavaScript for Console, Syntax Colors & Theme
