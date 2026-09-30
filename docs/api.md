@@ -291,13 +291,17 @@ curl -s "http://192.168.1.150/api/status"
 ```json
 {
   "polling": false,
-  "paused": false
+  "paused": false,
+  "dur": 6070,
+  "ok": true
 }
 ```
 
 #### Schema Fields:
 * `polling` *(boolean)*: `true` if a BMS RS232 scrape transaction is actively in progress.
 * `paused` *(boolean)*: `true` if scheduled BMS serial polling is currently paused.
+* `dur` *(integer)*: Duration of last scrape cycle in milliseconds.
+* `ok` *(boolean)*: `true` if the last serial scrape transaction completed successfully.
 
 ---
 

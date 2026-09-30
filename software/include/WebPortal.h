@@ -688,10 +688,10 @@ public:
             PrometheusExporter::generateMetrics(stack, server);
         });
 
-        // Live Status API for universal navbar polling indicator
+        // Live Status API for universal navbar and footer polling indicator
         server.on("/api/status", [this]() {
             if (!checkWebAuth()) return;
-            server.send(200, "application/json", "{\"polling\":" + String(pylonSerial.isPolling() ? "true" : "false") + ",\"paused\":" + String(isPollingPaused ? "true" : "false") + "}");
+            server.send(200, "application/json", "{\"polling\":" + String(pylonSerial.isPolling() ? "true" : "false") + ",\"paused\":" + String(isPollingPaused ? "true" : "false") + ",\"dur\":" + String(stack.scrapeDurationMs) + ",\"ok\":" + (stack.scrapeSuccess ? "true" : "false") + "}");
         });
 
         // REST JSON API
@@ -1016,6 +1016,13 @@ private:
         h += "          if (d.polling) pDot.classList.add('active');\n";
         h += "          else pDot.classList.remove('active');\n";
         h += "        }\n";
+        h += "        var fi = document.getElementById('footerScrapeInfo');\n";
+        h += "        if (fi && d.polling !== undefined) {\n";
+        h += "          var dur = (d.dur !== undefined) ? (d.dur / 1000.0).toFixed(2) : '';\n";
+        h += "          var durHtml = dur ? ('<b>' + dur + 's</b> ') : '';\n";
+        h += "          var st = d.polling ? \"<span style='color:#f59e0b;font-weight:700;'>POLLING</span>\" : (d.ok ? \"<span style='color:#16a34a;font-weight:700;'>OK</span>\" : \"<span style='color:#dc2626;font-weight:700;'>FAIL</span>\");\n";
+        h += "          fi.innerHTML = 'Last BMS Scrape: ' + durHtml + '(' + st + ')';\n";
+        h += "        }\n";
         h += "        var next = (d && d.polling) ? 1000 : 4000;\n";
         h += "        setTimeout(pollNavStatus, next);\n";
         h += "      })\n";
@@ -1080,7 +1087,9 @@ private:
         f += "</div>\n"; // close .container
         f += "<footer class='footer'>\n";
         f += "  <div>Pylon Smart Monitor <strong>v" + String(FIRMWARE_VERSION) + "</strong> &bull; Build: " + String(FIRMWARE_BUILD_DATE) + " " + String(FIRMWARE_BUILD_TIME) + "</div>\n";
-        f += "  <div id='footerScrapeInfo' style='font-size:0.78rem;color:#718096;margin-top:4px;'>Last BMS Scrape: <b>" + String(stack.scrapeDurationMs / 1000.0f, 2) + "s</b> (" + (stack.scrapeSuccess ? "<span style='color:#16a34a;font-weight:700;'>OK</span>" : "<span style='color:#dc2626;font-weight:700;'>FAIL</span>") + ")</div>\n";
+        String durStr = String(stack.scrapeDurationMs / 1000.0f, 2) + "s";
+        String st = pylonSerial.isPolling() ? "<span style='color:#f59e0b;font-weight:700;'>POLLING</span>" : (stack.scrapeSuccess ? "<span style='color:#16a34a;font-weight:700;'>OK</span>" : "<span style='color:#dc2626;font-weight:700;'>FAIL</span>");
+        f += "  <div id='footerScrapeInfo' style='font-size:0.78rem;color:#718096;margin-top:4px;'>Last BMS Scrape: <b>" + durStr + "</b> (" + st + ")</div>\n";
         f += "</footer>\n";
         f += "</body>\n</html>\n";
         return f;
@@ -1626,7 +1635,7 @@ private:
         html += "        el = document.getElementById('footerScrapeInfo');\n";
         html += "        if (el) {\n";
         html += "          var dur = (s.scrape_duration_ms / 1000.0).toFixed(2);\n";
-        html += "          var st = s.scrape_success ? \"<span style='color:#16a34a;font-weight:700;'>OK</span>\" : \"<span style='color:#dc2626;font-weight:700;'>FAIL</span>\";\n";
+        html += "          var st = s.is_polling ? \"<span style='color:#f59e0b;font-weight:700;'>POLLING</span>\" : (s.scrape_success ? \"<span style='color:#16a34a;font-weight:700;'>OK</span>\" : \"<span style='color:#dc2626;font-weight:700;'>FAIL</span>\");\n";
         html += "          el.innerHTML = 'Last BMS Scrape: <b>' + dur + 's</b> (' + st + ')';\n";
         html += "        }\n";
         html += "        if (d.system) {\n";
@@ -2138,7 +2147,7 @@ private:
         html += "        var fi = document.getElementById('footerScrapeInfo');\n";
         html += "        if (fi && d.scrape_duration_ms !== undefined) {\n";
         html += "          var dur = (d.scrape_duration_ms / 1000.0).toFixed(2);\n";
-        html += "          var st = d.scrape_success ? \"<span style='color:#16a34a;font-weight:700;'>OK</span>\" : \"<span style='color:#dc2626;font-weight:700;'>FAIL</span>\";\n";
+        html += "          var st = d.is_polling ? \"<span style='color:#f59e0b;font-weight:700;'>POLLING</span>\" : (d.scrape_success ? \"<span style='color:#16a34a;font-weight:700;'>OK</span>\" : \"<span style='color:#dc2626;font-weight:700;'>FAIL</span>\");\n";
         html += "          fi.innerHTML = 'Last BMS Scrape: <b>' + dur + 's</b> (' + st + ')';\n";
         html += "        }\n";
         html += "        if (d.cells) {\n";
