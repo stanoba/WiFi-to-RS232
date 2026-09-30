@@ -2835,7 +2835,7 @@ private:
 
         // Terminal Output Card (Responsive percentage height: 62vh, min 480px)
         html += "<div id='termWrap' class='term-dark' style='border-radius:10px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,0.15);overflow:hidden;display:flex;flex-direction:column;height:62vh;min-height:480px;'>\n";
-        html += "  <pre id='consoleOutput' style='margin:0;font-family:\"Cascadia Mono\",\"Cascadia Code\",ui-monospace,\"SFMono-Regular\",\"JetBrains Mono\",Menlo,Consolas,\"Courier New\",monospace;font-size:0.88rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;height:100%;overflow-y:auto;'></pre>\n";
+        html += "  <pre id='consoleOutput' style='margin:0;font-family:\"Cascadia Mono\",\"Cascadia Code\",ui-monospace,\"SFMono-Regular\",\"JetBrains Mono\",Menlo,Consolas,\"Courier New\",monospace;font-size:0.80rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;height:100%;overflow-y:auto;'></pre>\n";
         html += "</div>\n";
 
         // JavaScript for Console, Syntax Colors & Theme
