@@ -2000,9 +2000,9 @@ private:
             if (cSoc == 0 && mod.power.valid && mod.power.socPercent > 0 && mod.cells[c].coulombMah == 0) {
                 cSoc = mod.power.socPercent;
             }
-            html += "            <div id='cSoc_" + String(c) + "' style='font-size:0.76rem;color:#ffffff;font-weight:700;'>" + (v > 0 ? (String(cSoc) + "%") : "--%") + "</div>\n";
-            html += "            <div id='cVolt_" + String(c) + "' style='font-size:0.82rem;font-variant-numeric:tabular-nums;font-feature-settings:&quot;tnum&quot;;'>" + (v > 0 ? (vCellStr + "V") : "--V") + "</div>\n";
-            html += "            <div id='cTemp_" + String(c) + "' style='font-size:0.75rem;color:#cbd5e1;'>" + String(t, 1) + " °C</div>\n";
+            html += "            <div id='cSoc_" + String(c) + "' style='font-size:0.84rem;color:#ffffff;font-weight:700;'>" + (v > 0 ? (String(cSoc) + "%") : "--%") + "</div>\n";
+            html += "            <div id='cVolt_" + String(c) + "' style='font-size:0.84rem;font-variant-numeric:tabular-nums;font-feature-settings:&quot;tnum&quot;;'>" + (v > 0 ? (vCellStr + "V") : "--V") + "</div>\n";
+            html += "            <div id='cTemp_" + String(c) + "' style='font-size:0.84rem;color:#444444;'>" + String(t, 1) + "°C</div>\n";
 
             // SOH per cell (supported on models with soh command, e.g. US3000C, US2000C)
             const ModelProfile *prof = getModelProfile(stack.model);
@@ -2010,12 +2010,12 @@ private:
             if (showCellSoh) {
                 if (mod.cells[c].sohValid) {
                     if (mod.cells[c].sohCount > 0) {
-                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.70rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: <b style='color:#ef4444;'>" + String(mod.cells[c].sohCount) + "</b></div>\n";
+                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.75rem;font-weight:700;color:#333333;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH <b style='color:#ef4444;'>" + String(mod.cells[c].sohCount) + "</b></div>\n";
                     } else {
-                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.70rem;font-weight:700;color:#cbd5e1;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH: 0</div>\n";
+                        html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.75rem;font-weight:700;color:#333333;' title='SOH Status: " + String(mod.cells[c].sohStatus) + "'>SOH 0</div>\n";
                     }
                 } else {
-                    html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.70rem;font-weight:700;color:#64748b;' title='SOH not yet polled'>SOH: -</div>\n";
+                    html += "            <div id='cSoh_" + String(c) + "' style='font-size:0.75rem;font-weight:700;color:#64748b;' title='SOH not yet polled'>SOH -</div>\n";
                 }
             }
 
@@ -2159,7 +2159,7 @@ private:
         html += "          d.cells.forEach(function(c, i){\n";
         html += "            var s = document.getElementById('cSoc_' + i); if (s) s.textContent = (c.soc ? c.soc : d.soc) + '%';\n";
         html += "            var v = document.getElementById('cVolt_' + i); if (v) v.textContent = (c.v / 1000.0).toFixed(3) + 'V';\n";
-        html += "            var t = document.getElementById('cTemp_' + i); if (t) t.textContent = c.t.toFixed(1) + ' °C';\n";
+        html += "            var t = document.getElementById('cTemp_' + i); if (t) t.textContent = c.t.toFixed(1) + '°C';\n";
         html += "            var b = document.getElementById('cBal_' + i); if (b) b.style.visibility = c.bal ? 'visible' : 'hidden';\n";
         html += "            var f = document.getElementById('cFill_' + i);\n";
         html += "            if (f) {\n";
@@ -2170,7 +2170,7 @@ private:
         html += "            var soh = document.getElementById('cSoh_' + i);\n";
         html += "            if (soh && c.soh_valid) {\n";
         html += "              soh.title = 'SOH Status: ' + c.soh_status;\n";
-        html += "              soh.innerHTML = (c.soh_count > 0) ? (\"SOH: <b style='color:#ef4444;'>\" + c.soh_count + \"</b>\") : \"SOH: 0\";\n";
+        html += "              soh.innerHTML = (c.soh_count > 0) ? (\"SOH <b style='color:#ef4444;'>\" + c.soh_count + \"</b>\") : \"SOH 0\";\n";
         html += "            }\n";
         html += "          });\n";
         html += "        }\n";
