@@ -2268,10 +2268,10 @@ private:
         html += "    <input type='checkbox' name='ip_static' value='1'" + String(staticEn ? " checked" : "") + "> Use Static IP Configuration (instead of DHCP)\n";
         html += "  </label>\n";
         html += "  <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;'>\n";
-        html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Static IP Address:</label><input type='text' name='ip_addr' value='" + staticIp + "' placeholder='192.168.5.134' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
+        html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Static IP Address:</label><input type='text' name='ip_addr' value='" + staticIp + "' placeholder='192.168.1.150' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
         html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Subnet Mask:</label><input type='text' name='ip_mask' value='" + staticMask + "' placeholder='255.255.255.0' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
-        html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Default Gateway:</label><input type='text' name='ip_gw' value='" + staticGw + "' placeholder='192.168.5.1' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
-        html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Primary DNS Server:</label><input type='text' name='ip_dns' value='" + staticDns + "' placeholder='192.168.5.1' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
+        html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Default Gateway:</label><input type='text' name='ip_gw' value='" + staticGw + "' placeholder='192.168.1.1' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
+        html += "    <div><label style='font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;'>Primary DNS Server:</label><input type='text' name='ip_dns' value='" + staticDns + "' placeholder='192.168.1.1' style='width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;'></div>\n";
         html += "  </div>\n";
         html += "  <small style='color:#718096;display:block;margin-top:8px;'>When unchecked, device dynamically receives network parameters via DHCP from your router.</small>\n";
         html += "</div>\n";

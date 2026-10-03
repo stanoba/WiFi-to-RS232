@@ -365,16 +365,16 @@ curl -s http://192.168.1.150/api/peers
 ```json
 [
   {
-    "name": "pylon-smart-0a12",
-    "ip": "192.168.5.134",
+    "name": "pylon-smart",
+    "ip": "192.168.1.150",
     "port": 80,
     "model": "US3000C",
     "modules": 6,
     "ver": "1.2.0"
   },
   {
-    "name": "pylon-smart-6d0a",
-    "ip": "192.168.5.136",
+    "name": "pylon-smart-slave1",
+    "ip": "192.168.1.151",
     "port": 80,
     "model": "US3000C",
     "modules": 5,

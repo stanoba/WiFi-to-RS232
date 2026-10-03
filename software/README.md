@@ -162,7 +162,7 @@ You can flash directly from your terminal over WiFi, just like ESPHome:
 
 ```bash
 # Upload via IP address:
-pio run -t upload --upload-port 192.168.5.134
+pio run -t upload --upload-port 192.168.1.150
 
 # Or upload via mDNS hostname:
 pio run -t upload --upload-port pylon-smart.local

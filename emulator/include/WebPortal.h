@@ -1421,10 +1421,10 @@ private:
         html += F("</label>");
 
         html += F("<div class=\"grid-4\">");
-        html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Static IP Address:</label><input type=\"text\" name=\"ip_addr\" class=\"form-control\" value=\"" + staticIp + "\" placeholder=\"192.168.5.147\"></div>";
+        html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Static IP Address:</label><input type=\"text\" name=\"ip_addr\" class=\"form-control\" value=\"" + staticIp + "\" placeholder=\"192.168.1.150\"></div>";
         html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Subnet Mask:</label><input type=\"text\" name=\"ip_mask\" class=\"form-control\" value=\"" + staticMask + "\" placeholder=\"255.255.255.0\"></div>";
-        html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Default Gateway:</label><input type=\"text\" name=\"ip_gw\" class=\"form-control\" value=\"" + staticGw + "\" placeholder=\"192.168.5.1\"></div>";
-        html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Primary DNS Server:</label><input type=\"text\" name=\"ip_dns\" class=\"form-control\" value=\"" + staticDns + "\" placeholder=\"192.168.5.1\"></div>";
+        html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Default Gateway:</label><input type=\"text\" name=\"ip_gw\" class=\"form-control\" value=\"" + staticGw + "\" placeholder=\"192.168.1.1\"></div>";
+        html += "<div><label style=\"font-size:0.82rem;font-weight:600;display:block;margin-bottom:4px;\">Primary DNS Server:</label><input type=\"text\" name=\"ip_dns\" class=\"form-control\" value=\"" + staticDns + "\" placeholder=\"192.168.1.1\"></div>";
         html += F("</div>");
         html += F("<small style=\"color:var(--text-muted);display:block;margin-top:8px;\">When unchecked, device dynamically receives network parameters via DHCP from your router.</small>");
         html += F("</div>");

@@ -10,6 +10,10 @@ software/.pio/
 
 # Temporary scratch directory
 scratch/
+.env
+*.local.json
+.devices.json
 
 # CAM and manufacturing outputs
 CAMOutputs/
+
