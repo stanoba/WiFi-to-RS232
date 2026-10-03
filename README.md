@@ -28,14 +28,69 @@ Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (
 
 ---
 
+---
+
+## Repository Structure
+
+```
+WiFi-to-RS232/
+├── software/           # Pylon Smart Monitor firmware (ESP32) — Prometheus, MQTT, Web Dashboard
+├── emulator/           # Pylon BMS Console Emulator firmware (ESP32) — Battery stack simulator
+├── hardware/           # MAX3232 PCB hardware schematics, Gerber files, and 3D enclosures
+├── integrations/       # Grafana dashboard templates and Home Assistant configs
+└── docs/               # In-depth documentation (Hardware, UI, REST API, Prometheus)
+```
+
+---
+
+## Projects Overview
+
+### 1. Pylon Smart Monitor (`software/`)
+Reads live telemetry from Pylontech battery stacks via the RJ45 RS232 console port and exposes it via:
+* **Prometheus Metrics** (`/metrics`) with pre-built Grafana dashboards.
+* **Home Assistant MQTT** with automatic discovery.
+* **Interactive Web Dashboard** with real-time 24h charts, 19" rack visualization, and live cell voltages.
+* **REST JSON API** for external automation scripts and monitoring systems.
+
+### 2. Pylon BMS Console Emulator (`emulator/`)
+A companion firmware that runs on the **exact same ESP32 + MAX3232 hardware board** to simulate a physical Pylontech battery rack (US2000C, US3000C, US3000D, US5000, UP5000) for development, testing, and CI/CD without needing a real battery:
+* **Physics & Inverter Engine:** Realistic LiFePO4 OCV curves, cell voltage spread, thermal heating, and solar PV/inverter load simulation.
+* **Master Hierarchy Validation:** Auto-enforces generation rank and firmware priority rules.
+* **Fault & Alarm Injection:** Test over-voltage, under-voltage, over-current, and high-temp triggers.
+* **Cross-over RJ45 Link:** Connect directly to the Smart Monitor via a standard RJ45 null-modem cable.
+
+---
+
+## Automated Unit Testing (Native C++)
+
+Both projects include fast native C++ unit tests (Unity framework) that execute locally on your development machine in seconds:
+
+```bash
+# Run unit tests for Pylon Smart Monitor (Parser, Model Detection, Telemetry)
+pio test -d software -e native
+
+# Run unit tests for BMS Emulator (Physics, OCV Curve, Hierarchy, CLI Formatting)
+pio test -d emulator -e native
+```
+
+---
+
 ## Web Interface
 
-![Dashboard — Light Theme](assets/ui-dashboard.png)
- 
-![Dashboard — Dark Theme](assets/ui-dashboard-dark.png)
+### 1. Pylon Smart Monitor Dashboard
+
+| Light Theme | Dark Theme |
+|:---:|:---:|
+| ![Dashboard — Light Theme](assets/ui-dashboard.png) | ![Dashboard — Dark Theme](assets/ui-dashboard-dark.png) |
+
+### 2. Pylon BMS Emulator Dashboard
+
+| Light Theme | Dark Theme |
+|:---:|:---:|
+| ![Emulator Dashboard — Light](assets/ui-emulator-dashboard.png) | ![Emulator Dashboard — Dark](assets/ui-emulator-dashboard-dark.png) |
 
 > [!TIP]
-> Full web interface description with all screenshots: **[`docs/ui.md`](docs/ui.md)**
+> Full web interface description with all screenshots (Module matrix, Console log, Settings): **[`docs/ui.md`](docs/ui.md)** and **[`emulator/README.md`](emulator/README.md)**
 
 ---
 
@@ -45,24 +100,20 @@ Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (
 
 Prerequisites: [PlatformIO Core](https://platformio.org/).
 
-**Wemos D1 Mini ESP32** (default):
+**Pylon Smart Monitor:**
 ```bash
 cd software
-pio run -e wemos_d1_mini32 -t upload
+pio run -e wemos_d1_mini32 -t upload   # Wemos D1 Mini ESP32
+# or: pio run -e lolin_s2_mini -t upload
+# or: pio run -e esp32_c3_super_mini -t upload
 ```
 
-**LOLIN S2 Mini (ESP32-S2):**
+**Pylon BMS Console Emulator:**
 ```bash
-cd software
-# On first flash, hold the '0' button, press RST, release '0' to enter bootloader mode
-pio run -e lolin_s2_mini -t upload
-```
-
-**ESP32-C3 Super Mini (RISC-V):**
-```bash
-cd software
-# On first flash, hold the 'BOOT' button, plug in USB-C, release 'BOOT' to enter bootloader mode
-pio run -e esp32_c3_super_mini -t upload
+cd emulator
+pio run -e wemos_d1_mini32 -t upload   # Wemos D1 Mini ESP32
+# or: pio run -e lolin_s2_mini -t upload
+# or: pio run -e esp32_c3_super_mini -t upload
 ```
 
 To monitor debug serial output:
@@ -73,7 +124,7 @@ pio device monitor -b 115200
 ### 2. First Boot & WiFi Setup
 
 1. Power on the device.
-2. Connect to the open WiFi access point **`Pylon-Smart-XXXX`** (no password required).
+2. Connect to the open WiFi access point (**`Pylon-Smart-XXXX`** or **`Pylon-Emulator-XXXX`**).
 3. The captive portal opens automatically (or navigate to `http://192.168.4.1/`).
 4. Open `/settings`, select your SSID, enter password, and save.
 
@@ -86,14 +137,14 @@ pio device monitor -b 115200
 | `http://<device-ip>/log` | Live RS232 Console |
 | `http://<device-ip>/settings` | Settings & Integrations |
 | `http://<device-ip>/wifi` | WiFi Setup Portal |
-| `http://<device-ip>/metrics` | Prometheus Metrics |
+| `http://<device-ip>/metrics` | Prometheus Metrics (Monitor) |
 | `http://<device-ip>/api/data` | REST JSON API (live telemetry & diagnostics) |
 | `http://<device-ip>/api/module` | REST JSON API (module detail) |
 | `http://<device-ip>/api/status` | REST JSON API (micro polling/pause status) |
 | `http://<device-ip>/api/history` | REST JSON API (24h telemetry samples) |
 | `http://<device-ip>/api/peers` | REST JSON API (discovered peer monitors) |
 | `http://<device-ip>/update` | OTA Firmware Update |
-| `http://pylon-smart.local/` | mDNS hostname (same as above) |
+| `http://pylon-smart.local/` | mDNS hostname (or `http://pylon-emulator.local/`) |
 
 ---
 
@@ -101,12 +152,14 @@ pio device monitor -b 115200
 
 | Document | Description |
 |:---|:---|
-| **[`docs/hardware.md`](docs/hardware.md)** | PCB design, pinout, UART mapping, RS232 interface |
+| **[`software/README.md`](software/README.md)** | Smart Monitor firmware build, configuration, and OTA update guide |
+| **[`emulator/README.md`](emulator/README.md)** | BMS Emulator architecture, physics engine, and simulation guide |
+| **[`hardware/README.md`](hardware/README.md)** | PCB design, pinout, UART mapping, RS232 interface |
 | **[`docs/ui.md`](docs/ui.md)** | Web interface guide with screenshots |
 | **[`docs/api.md`](docs/api.md)** | REST API reference, endpoint schemas, integration examples |
 | **[`docs/prometheus.md`](docs/prometheus.md)** | Prometheus metrics reference and Grafana PromQL recipes |
 | **[`integrations/grafana/`](integrations/grafana/pylontech-smart-monitor-dashboard.json)** | Ready-to-import Grafana dashboard template for Prometheus |
-| **[`software/README.md`](software/README.md)** | Firmware build, configuration, and OTA update guide |
+
 
 ---
 
