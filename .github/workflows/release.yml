@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Existing release tag to rebuild (for example v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -24,6 +30,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ inputs.version_tag || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -45,7 +52,7 @@ jobs:
       - name: Determine Version
         id: get_version
         run: |
-          TAG="${{ github.ref_name }}"
+          TAG="${{ inputs.version_tag || github.ref_name }}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Building release for tag: $TAG"
 
@@ -76,7 +83,8 @@ jobs:
           name: "Pylon Smart Monitor & Emulator ${{ steps.get_version.outputs.tag }}"
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: ${{ github.event_name == 'push' }}
+          overwrite_files: true
           files: |
             dist/*.bin
             dist/*.txt
