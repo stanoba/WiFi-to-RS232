@@ -501,6 +501,10 @@
   </div>
 
   <script>
+    function manifestUrl(filename) {
+      return new URL(filename, window.location.href).href;
+    }
+
     function selectFirmware(type) {
       const btnMonitor = document.getElementById('tabMonitor');
       const btnEmulator = document.getElementById('tabEmulator');
@@ -513,7 +517,7 @@
       if (type === 'emulator') {
         btnMonitor.classList.remove('active');
         btnEmulator.classList.add('active');
-        flasherBtn.setAttribute('manifest', 'manifest-emulator.json');
+        flasherBtn.setAttribute('manifest', manifestUrl('manifest-emulator.json'));
         btnLabel.innerText = 'Connect & Flash BMS Emulator';
         pageTitle.innerText = 'Pylon BMS Emulator Web Installer';
         pageSubtitle.innerText = 'Turn any ESP32 into a virtual Pylontech battery rack with real-time physics and protocol simulation.';
@@ -521,13 +525,15 @@
       } else {
         btnEmulator.classList.remove('active');
         btnMonitor.classList.add('active');
-        flasherBtn.setAttribute('manifest', 'manifest-monitor.json');
+        flasherBtn.setAttribute('manifest', manifestUrl('manifest-monitor.json'));
         btnLabel.innerText = 'Connect & Flash Smart Monitor';
         pageTitle.innerText = 'Pylontech Smart Monitor Web Installer';
         pageSubtitle.innerText = 'Flash Pylontech LiFePO4 battery monitoring firmware directly to your ESP32 board via USB.';
         credSsid.innerText = 'Pylon-Monitor-XXXXXX';
       }
     }
+
+    selectFirmware('monitor');
   </script>
 
 </body>
