@@ -91,14 +91,20 @@ jobs:
             dist/*.bin
             dist/*.txt
 
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Web Flasher Artifact
+      - name: Upload Web Flasher as Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'webflasher'
 
+  deploy_pages:
+    name: Deploy Web Flasher to GitHub Pages
+    needs: build_and_release
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
