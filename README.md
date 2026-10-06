@@ -5,7 +5,7 @@
 [![Web Installer](https://img.shields.io/badge/Web%20Installer-ESP%20Web%20Tools-77b243?logo=googlechrome&logoColor=white)](https://stanoba.github.io/WiFi-to-RS232/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (**US2000**, **US3000C**, **US3000D**, **US5000**, **Force H1/H2**, **Pelio**, **UP2500/UP5000**) via their RJ45 RS232 console port and exposing metrics over WiFi in **Prometheus format**, **Home Assistant MQTT**, and an interactive **Web Dashboard** — accompanied by a full-featured **BMS Hardware Rack & Physics Emulator**.
+Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (**US2000**, **US3000C**, **US3000D**, **US5000**) via their RJ45 RS232 console port and exposing metrics over WiFi in **Prometheus format**, **Home Assistant MQTT**, and an interactive **Web Dashboard** — accompanied by a full-featured **BMS Hardware Rack & Physics Emulator**.
 
 ---
 
