@@ -4,12 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version_tag:
-        description: 'Release Tag (e.g. v1.0.0)'
-        required: true
-        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -51,11 +45,7 @@ jobs:
       - name: Determine Version
         id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.version_tag }}"
-          else
-            TAG="${{ github.ref_name }}"
-          fi
+          TAG="${{ github.ref_name }}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Building release for tag: $TAG"
 
