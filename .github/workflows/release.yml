@@ -76,6 +76,13 @@ jobs:
         run: |
           python package_release.py "${{ steps.get_version.outputs.tag }}"
 
+      - name: Package released Web Flasher assets
+        run: |
+          test -f webflasher/manifest-monitor.json
+          test -f webflasher/manifest-emulator.json
+          test "$(find webflasher/firmware -maxdepth 1 -type f -name '*.bin' | wc -l)" -eq 16
+          (cd webflasher && zip -r "$GITHUB_WORKSPACE/dist/webflasher-assets.zip" manifest.json manifest-monitor.json manifest-emulator.json firmware)
+
       - name: Create GitHub Release & Upload Assets
         uses: softprops/action-gh-release@v3
         with:
@@ -88,6 +95,7 @@ jobs:
           files: |
             dist/*.bin
             dist/*.txt
+            dist/webflasher-assets.zip
 
       - name: Upload Web Flasher as Pages Artifact
         uses: actions/upload-pages-artifact@v5

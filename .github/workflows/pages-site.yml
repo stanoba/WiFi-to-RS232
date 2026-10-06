@@ -1,0 +1,55 @@
+name: Deploy Web Flasher Page
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'webflasher/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy page with latest released firmware
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout page source
+        uses: actions/checkout@v5
+
+      - name: Download assets from latest GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          echo "Using released firmware from $RELEASE_TAG"
+          mkdir -p "$RUNNER_TEMP/released-webflasher"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern webflasher-assets.zip \
+            --dir "$RUNNER_TEMP/released-webflasher"
+          mkdir -p "$RUNNER_TEMP/released-webflasher/site"
+          unzip -q "$RUNNER_TEMP/released-webflasher/webflasher-assets.zip" \
+            -d "$RUNNER_TEMP/released-webflasher/site"
+          cp "$RUNNER_TEMP/released-webflasher/site"/manifest*.json webflasher/
+          cp "$RUNNER_TEMP/released-webflasher/site"/firmware/*.bin webflasher/firmware/
+
+      - name: Upload Web Flasher as Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: webflasher
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
