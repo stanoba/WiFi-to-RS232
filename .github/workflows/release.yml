@@ -27,12 +27,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -41,7 +41,7 @@ jobs:
           pip install -U platformio esptool
 
       - name: Cache PlatformIO Core & Packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.platformio
           key: ${{ runner.os }}-platformio-${{ hashFiles('software/platformio.ini', 'emulator/platformio.ini') }}
@@ -80,7 +80,7 @@ jobs:
           python package_release.py "${{ steps.get_version.outputs.tag }}"
 
       - name: Create GitHub Release & Upload Assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
           name: "Pylon Smart Monitor & Emulator ${{ steps.get_version.outputs.tag }}"
@@ -92,7 +92,7 @@ jobs:
             dist/*.txt
 
       - name: Upload Web Flasher as Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: 'webflasher'
 
@@ -107,4 +107,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

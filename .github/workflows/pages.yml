@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'webflasher/**'
+      - 'software/**'
+      - 'emulator/**'
+      - 'package_release.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -25,13 +28,37 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO and esptool
+        run: pip install -U platformio esptool
+
+      - name: Cache PlatformIO Core and Packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('software/platformio.ini', 'emulator/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
+
+      - name: Build firmware for all supported boards
+        run: |
+          pio run -d software -e wemos_d1_mini32 -e lolin_s2_mini -e esp32_c3_super_mini
+          pio run -d emulator -e wemos_d1_mini32 -e lolin_s2_mini -e esp32_c3_super_mini
+
+      - name: Package firmware for Web Flasher
+        run: python package_release.py
 
       - name: Upload Web Flasher as Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: webflasher
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
