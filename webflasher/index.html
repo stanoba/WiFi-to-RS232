@@ -340,7 +340,7 @@
       <div class="badges">
         <span class="badge">Wemos D1 Mini ESP32 (4MB Flash)</span>
         <span class="badge">ESP Web Tools v10</span>
-        <span class="badge" id="badgeVersion">Firmware v1.0.0</span>
+        <span class="badge" id="badgeVersion">Firmware version: loading…</span>
         <span class="badge">Zero Drivers Required</span>
       </div>
     </header>
@@ -505,6 +505,28 @@
       return new URL(filename, window.location.href).href;
     }
 
+    let manifestRequestId = 0;
+
+    async function updateFirmwareVersion(type) {
+      const requestId = ++manifestRequestId;
+      const badgeVersion = document.getElementById('badgeVersion');
+      const manifestFile = type === 'emulator' ? 'manifest-emulator.json' : 'manifest-monitor.json';
+      badgeVersion.innerText = 'Firmware version: loading…';
+
+      try {
+        const response = await fetch(manifestUrl(manifestFile), { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`Manifest request failed: ${response.status}`);
+        const manifest = await response.json();
+        if (requestId === manifestRequestId) {
+          badgeVersion.innerText = `Firmware v${manifest.version}`;
+        }
+      } catch (error) {
+        if (requestId === manifestRequestId) {
+          badgeVersion.innerText = 'Firmware version unavailable';
+        }
+      }
+    }
+
     function selectFirmware(type) {
       const btnMonitor = document.getElementById('tabMonitor');
       const btnEmulator = document.getElementById('tabEmulator');
@@ -531,6 +553,8 @@
         pageSubtitle.innerText = 'Flash Pylontech LiFePO4 battery monitoring firmware directly to your ESP32 board via USB.';
         credSsid.innerText = 'Pylon-Monitor-XXXXXX';
       }
+
+      updateFirmwareVersion(type);
     }
 
     selectFirmware('monitor');
