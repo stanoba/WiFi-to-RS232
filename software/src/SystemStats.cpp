@@ -80,6 +80,7 @@ SystemStats SystemMonitor::getSnapshot() {
     s.cpuCores = ESP.getChipCores();
     s.chipModel = String(ESP.getChipModel());
     s.chipRevision = ESP.getChipRevision();
+    s.resetReasonCode = (uint8_t)esp_reset_reason();
     s.resetReason = getResetReasonStr();
 
     s.heapTotal = ESP.getHeapSize();

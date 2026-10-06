@@ -83,6 +83,7 @@ SystemDiagnostics SystemStatsManager::getDiagnostics() {
     diag.cpuCores = ESP.getChipCores();
     diag.chipModel = String(ESP.getChipModel());
     diag.chipRevision = ESP.getChipRevision();
+    diag.resetReasonCode = (uint8_t)esp_reset_reason();
     diag.resetReason = getResetReasonString();
 
     diag.heapTotalBytes = ESP.getHeapSize();

@@ -273,6 +273,15 @@ html.dark .badge-slave{background:#334155;color:#f8fafc;border:1px solid #334155
 .term-light .line-warn{color:#d97706;font-weight:700;}
 .term-light .line-sys{color:#d97706;}
 .term-light .line-info{color:#15803d;}
+html.dark input[type='text'],html.dark input[type='password'],html.dark input[type='number'],html.dark select{background-color:#1e293b!important;color:#f1f5f9!important;border-color:#334155!important;}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.25);width:100%;max-width:380px;overflow:hidden;position:relative;}
+.login-body{padding:28px 24px;}
+.pwd-wrap{position:relative;display:flex;align-items:center;width:100%;box-sizing:border-box;}
+.pwd-wrap .form-control, .pwd-wrap input[type='password'], .pwd-wrap input[type='text']{width:100%!important;flex:1 1 100%;padding-right:38px;}
+.pwd-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;padding:4px;cursor:pointer;color:#94a3b8;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;transition:color 0.15s;z-index:2;}
+.pwd-toggle:hover{color:var(--text);}
+.pwd-toggle:focus{outline:none;color:var(--teal);}
 .footer{margin:30px 0 20px 0;text-align:center;font-size:0.80rem;color:var(--text-muted);}
 @media(min-width:1250px){.nav-actions{position:absolute;right:24px;top:50%;transform:translateY(-50%);}}
 )rawliteral";
@@ -338,6 +347,7 @@ private:
     WebServer server;
     Preferences &prefs;
     BmsUartHandler &uartHandler;
+    String sessionToken;
 
     // Helper: Master hierarchy sorting
     static bool compareModuleHierarchy(const ModuleData &a, const ModuleData &b) {
@@ -350,7 +360,7 @@ private:
     }
 
     // Common HTML Header template
-    static String getHtmlHeader(const String &activePage, const String &title) {
+    String getHtmlHeader(const String &activePage, const String &title) {
         String html;
         html.reserve(2048);
         html += F("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">");
@@ -408,6 +418,28 @@ private:
             "}catch(e){}"
             "}"
             "document.addEventListener('DOMContentLoaded',applyThemeUI);"
+            "function togglePassword(btn){"
+            "var wrap=btn.closest('.pwd-wrap');if(!wrap)return;"
+            "var inp=wrap.querySelector('input');if(!inp)return;"
+            "var open=btn.querySelector('.eye-open');"
+            "var closed=btn.querySelector('.eye-closed');"
+            "if(inp.type==='password'){"
+            "inp.type='text';"
+            "if(open)open.style.display='none';"
+            "if(closed)closed.style.display='block';"
+            "}else{"
+            "inp.type='password';"
+            "if(open)open.style.display='block';"
+            "if(closed)closed.style.display='none';"
+            "}"
+            "}"
+            "window.addEventListener('load',function(){"
+            "try{"
+            "var t=Math.round(performance.now());"
+            "var el=document.getElementById('page_load_time');"
+            "if(el)el.innerText=t+' ms';"
+            "}catch(e){}"
+            "});"
             "</script></head><body>");
 
         // Header element
@@ -428,7 +460,11 @@ private:
         html += F("<button type=\"button\" class=\"theme-btn\" id=\"themeBtnLight\" onclick=\"setTheme('light')\" title=\"Light Theme\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41\"/></svg></button>");
         html += F("<button type=\"button\" class=\"theme-btn\" id=\"themeBtnDark\" onclick=\"setTheme('dark')\" title=\"Dark Theme\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"/></svg></button>");
         html += F("<button type=\"button\" class=\"theme-btn\" id=\"themeBtnSystem\" onclick=\"setTheme('system')\" title=\"System Theme\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\"/><line x1=\"8\" y1=\"21\" x2=\"16\" y2=\"21\"/><line x1=\"12\" y1=\"17\" x2=\"12\" y2=\"21\"/></svg></button>");
-        html += F("</div></div>");
+        html += F("</div>");
+        if (prefs.getBool(NVS_KEY_AUTH_ENABLED, false)) {
+            html += F("<a href=\"/logout\" class=\"theme-btn\" title=\"Sign Out / Lock Session\" style=\"color:#ef4444;text-decoration:none;margin-left:6px;\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/><polyline points=\"16 17 21 12 16 7\"/><line x1=\"21\" y1=\"12\" x2=\"9\" y2=\"12\"/></svg></a>");
+        }
+        html += F("</div>");
         html += F("</div></div></div><div class=\"container\">");
 
         if (isApMode) {
@@ -442,21 +478,50 @@ private:
     }
 
     static String getHtmlFooter() {
-        return "</div><div class=\"footer\">Pylon BMS Emulator v" + String(FIRMWARE_VERSION) + " &bull; Build: " + String(FIRMWARE_BUILD_DATE) + " " + String(FIRMWARE_BUILD_TIME) + "</div></body></html>";
+        return "</div><div class=\"footer\">Pylon BMS Emulator v" + String(FIRMWARE_VERSION) + " &bull; Build: " + String(FIRMWARE_BUILD_DATE) + " " + String(FIRMWARE_BUILD_TIME) + " &bull; <span style=\"color:var(--green,#77b243);font-weight:600;\">&#9889; Load: <span id=\"page_load_time\">-- ms</span></span></div></body></html>";
     }
 
-    bool checkWebAuth() {
+    void updateSessionToken() {
+        uint32_t r1 = esp_random();
+        uint32_t r2 = esp_random();
+        char hexToken[33];
+        snprintf(hexToken, sizeof(hexToken), "%08x%08x%08lx", (unsigned int)r1, (unsigned int)r2, (unsigned long)millis());
+        sessionToken = String(hexToken);
+    }
+
+    bool isAuthenticated() {
         bool authEnabled = prefs.getBool(NVS_KEY_AUTH_ENABLED, false);
         if (!authEnabled) return true;
 
-        String user = prefs.getString(NVS_KEY_AUTH_USER, "admin");
-        String pass = prefs.getString(NVS_KEY_AUTH_PASS, "admin");
+        if (sessionToken.length() > 0 && server.hasHeader("Cookie")) {
+            String cookie = server.header("Cookie");
+            if (cookie.indexOf("pylon_emu_session=" + sessionToken) != -1 || cookie.indexOf("pylon_session=" + sessionToken) != -1) {
+                return true;
+            }
+        }
 
-        if (!server.authenticate(user.c_str(), pass.c_str())) {
-            server.requestAuthentication(BASIC_AUTH, "Pylon BMS Emulator");
+        if (server.hasHeader("Authorization")) {
+            String user = prefs.getString(NVS_KEY_AUTH_USER, "admin");
+            String pass = prefs.getString(NVS_KEY_AUTH_PASS, "admin");
+            if (server.authenticate(user.c_str(), pass.c_str())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool checkWebAuth() {
+        if (isAuthenticated()) return true;
+
+        // If it is an API route or AJAX JSON request, return 401 Unauthorized
+        if (server.uri().startsWith("/api/") || (server.hasHeader("Accept") && server.header("Accept").indexOf("application/json") != -1)) {
+            server.send(401, "application/json", "{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
             return false;
         }
-        return true;
+
+        renderLoginPage();
+        return false;
     }
 
     bool checkApiAuth() {
@@ -484,17 +549,210 @@ private:
             return true;
         }
 
-        // Also allow valid Web Basic Auth session if enabled
-        if (prefs.getBool(NVS_KEY_AUTH_ENABLED, false)) {
-            String user = prefs.getString(NVS_KEY_AUTH_USER, "admin");
-            String pass = prefs.getString(NVS_KEY_AUTH_PASS, "admin");
-            if (server.authenticate(user.c_str(), pass.c_str())) {
-                return true;
-            }
-        }
-
         server.send(401, "application/json", "{\"error\":\"Unauthorized\",\"message\":\"Invalid or missing Bearer token (Authorization: Bearer <token> or ?token=<token>)\"}");
         return false;
+    }
+
+    void handleApiLogin() {
+        String u = "";
+        String p = "";
+        if (server.hasArg("usr")) u = server.arg("usr");
+        if (server.hasArg("pwd")) p = server.arg("pwd");
+        u.trim();
+
+        String authUser = prefs.getString(NVS_KEY_AUTH_USER, "admin");
+        String authPass = prefs.getString(NVS_KEY_AUTH_PASS, "admin");
+
+        if (u == authUser && p == authPass) {
+            updateSessionToken();
+            String setCookie = "pylon_emu_session=" + sessionToken + "; Path=/; Max-Age=86400; SameSite=Lax";
+            server.sendHeader("Set-Cookie", setCookie);
+            server.send(200, "application/json", "{\"success\":true,\"token\":\"" + sessionToken + "\"}");
+            g_consoleLog.logInfo("Web user '" + u + "' logged in successfully.");
+        } else {
+            g_consoleLog.logWarn("Failed web login attempt with username '" + u + "'.");
+            server.send(401, "application/json", "{\"success\":false,\"error\":\"Invalid username or password\"}");
+        }
+    }
+
+    void handleLogout() {
+        sessionToken = "";
+        server.sendHeader("Set-Cookie", "pylon_emu_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax");
+        server.sendHeader("Location", "/login");
+        server.send(302, "text/plain", "Logged out");
+    }
+
+    void renderLoginPage(const String &errMsg = "") {
+        ChunkedHtmlSender html(server);
+        String devHost = prefs.getString(NVS_KEY_HOSTNAME, "");
+        if (devHost.length() == 0) devHost = getDefaultHostname();
+
+        html += F("<!DOCTYPE html>\n<html lang='en'>\n<head>\n"
+                  "  <meta charset='utf-8'>\n"
+                  "  <meta name='viewport' content='width=device-width, initial-scale=1'>\n");
+        html += "  <title>Sign In - " + devHost + "</title>\n";
+        html += F("  <link rel='icon' type='image/svg+xml' href='/favicon.svg'>\n"
+                  "  <link rel='icon' type='image/x-icon' href='/favicon.ico'>\n"
+                  "  <link rel='stylesheet' href='/style.css?v=");
+        html += FIRMWARE_VERSION;
+        html += F("'>\n"
+                  "  <script>\n"
+                  "  (function(){\n"
+                  "    try {\n"
+                  "      var t = localStorage.getItem('pylon_theme') || 'system';\n"
+                  "      var d = false;\n"
+                  "      if (t === 'dark') d = true;\n"
+                  "      else if (t === 'light') d = false;\n"
+                  "      else {\n"
+                  "        var osDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;\n"
+                  "        var hr = new Date().getHours() + new Date().getMinutes() / 60;\n"
+                  "        d = osDark || (hr >= 19 || hr < 7);\n"
+                  "      }\n"
+                  "      if (d) document.documentElement.classList.add('dark');\n"
+                  "      else document.documentElement.classList.remove('dark');\n"
+                  "    } catch(e) {}\n"
+                  "  })();\n"
+                  "  function isDarkTheme(m) {\n"
+                  "    if (m === 'dark') return true;\n"
+                  "    if (m === 'light') return false;\n"
+                  "    var osDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;\n"
+                  "    var hr = new Date().getHours() + new Date().getMinutes() / 60;\n"
+                  "    return osDark || (hr >= 19 || hr < 7);\n"
+                  "  }\n"
+                  "  function setTheme(m) { try { if (m === 'system') localStorage.removeItem('pylon_theme'); else localStorage.setItem('pylon_theme', m); } catch(e) {} applyThemeUI(); }\n"
+                  "  function applyThemeUI() {\n"
+                  "    var m = 'system'; try { m = localStorage.getItem('pylon_theme') || 'system'; } catch(e) {}\n"
+                  "    var d = isDarkTheme(m);\n"
+                  "    if (d) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');\n"
+                  "    var bl = document.getElementById('themeBtnLight'), bd = document.getElementById('themeBtnDark'), bs = document.getElementById('themeBtnSystem');\n"
+                  "    if (bl) bl.className = 'theme-btn' + (m === 'light' ? ' active' : '');\n"
+                  "    if (bd) bd.className = 'theme-btn' + (m === 'dark' ? ' active' : '');\n"
+                  "    if (bs) bs.className = 'theme-btn' + (m === 'system' ? ' active' : '');\n"
+                  "  }\n"
+                  "  document.addEventListener('DOMContentLoaded', applyThemeUI);\n"
+                  "  function togglePassword(btn) {\n"
+                  "    var wrap = btn.closest('.pwd-wrap'); if (!wrap) return;\n"
+                  "    var inp = wrap.querySelector('input'); if (!inp) return;\n"
+                  "    var open = btn.querySelector('.eye-open');\n"
+                  "    var closed = btn.querySelector('.eye-closed');\n"
+                  "    if (inp.type === 'password') {\n"
+                  "      inp.type = 'text';\n"
+                  "      if (open) open.style.display = 'none';\n"
+                  "      if (closed) closed.style.display = 'block';\n"
+                  "    } else {\n"
+                  "      inp.type = 'password';\n"
+                  "      if (open) open.style.display = 'block';\n"
+                  "      if (closed) closed.style.display = 'none';\n"
+                  "    }\n"
+                  "  }\n"
+                  "  window.addEventListener('load', function() {\n"
+                  "    try {\n"
+                  "      var t = Math.round(performance.now());\n"
+                  "      var el = document.getElementById('page_load_time');\n"
+                  "      if (el) el.innerText = t + ' ms';\n"
+                  "    } catch(e) {}\n"
+                  "  });\n"
+                  "  function doLogin(e) {\n"
+                  "    if (e) e.preventDefault();\n"
+                  "    var u = document.getElementById('usr').value.trim();\n"
+                  "    var p = document.getElementById('pwd').value;\n"
+                  "    var err = document.getElementById('login_err');\n"
+                  "    var btn = document.getElementById('btn_submit');\n"
+                  "    if (!u || !p) {\n"
+                  "      err.style.display = 'block';\n"
+                  "      err.innerText = 'Please enter both username and password.';\n"
+                  "      return false;\n"
+                  "    }\n"
+                  "    btn.disabled = true;\n"
+                  "    btn.innerText = 'Signing In...';\n"
+                  "    var params = new URLSearchParams();\n"
+                  "    params.append('usr', u);\n"
+                  "    params.append('pwd', p);\n"
+                  "    fetch('/api/login', {\n"
+                  "      method: 'POST',\n"
+                  "      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n"
+                  "      body: params.toString()\n"
+                  "    })\n"
+                  "      .then(function(r){ return r.json().catch(function(){ return { success: false, error: 'Server returned HTTP ' + r.status }; }); })\n"
+                  "      .then(function(d){\n"
+                  "        btn.disabled = false;\n"
+                  "        btn.innerText = 'Sign In \\u2192';\n"
+                  "        if (d.success) {\n"
+                  "          var redir = new URLSearchParams(window.location.search).get('redir') || '/';\n"
+                  "          window.location.href = redir;\n"
+                  "        } else {\n"
+                  "          err.style.display = 'block';\n"
+                  "          err.innerText = d.error || 'Invalid credentials.';\n"
+                  "        }\n"
+                  "      })\n"
+                  "      .catch(function(errObj){\n"
+                  "        btn.disabled = false;\n"
+                  "        btn.innerText = 'Sign In \\u2192';\n"
+                  "        err.style.display = 'block';\n"
+                  "        err.innerText = 'Connection error: ' + (errObj.message || 'Please retry.');\n"
+                  "      });\n"
+                  "    return false;\n"
+                  "  }\n"
+                  "  </script>\n"
+                  "</head>\n<body>\n"
+                  "<div class='login-wrap'>\n"
+                  "  <div class='login-card'>\n"
+                  "    <div class='top-accent' style='height:4px;background:linear-gradient(90deg,var(--green),var(--teal));'></div>\n"
+                  "    <div class='login-body'>\n"
+                  "      <div style='text-align:center;margin-bottom:20px;display:flex;flex-direction:column;align-items:center;'>\n"
+                  "        <a href='/' style='display:inline-block;text-decoration:none;'>");
+        html += FPSTR(PYLON_EMULATOR_LOGO_SVG);
+        html += F("</a>\n"
+                  "        <div style='font-size:0.82rem;color:#64748b;margin-top:6px;font-weight:500;'>BMS Rack & Physics Simulator</div>\n"
+                  "      </div>\n"
+                  "      <div id='login_err' style='display:");
+        if (errMsg.length() > 0) {
+            html += "block;margin-bottom:16px;padding:8px 12px;border-radius:6px;background:#fee2e2;color:#b91c1c;font-size:0.84rem;font-weight:600;border:1px solid #fca5a5;'>";
+            html += errMsg;
+            html += "</div>\n";
+        } else {
+            html += "none;margin-bottom:16px;padding:8px 12px;border-radius:6px;background:#fee2e2;color:#b91c1c;font-size:0.84rem;font-weight:600;border:1px solid #fca5a5;'></div>\n";
+        }
+        html += F("      <form onsubmit='return doLogin(event);'>\n"
+                  "        <div class='form-group'>\n"
+                  "          <label for='usr'>Username</label>\n"
+                  "          <input type='text' id='usr' class='form-control' placeholder='admin' value='admin' autofocus autocomplete='username' required>\n"
+                  "        </div>\n"
+                  "        <div class='form-group'>\n"
+                  "          <label for='pwd'>Password</label>\n"
+                  "          <div class='pwd-wrap'>\n"
+                  "            <input type='password' id='pwd' class='form-control' placeholder='••••••••' autocomplete='current-password' required>\n"
+                  "            <button type='button' class='pwd-toggle' onclick='togglePassword(this)' title='Toggle password visibility' tabindex='-1'>\n"
+                  "              <svg class='eye-open' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg>\n"
+                  "              <svg class='eye-closed' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='display:none;'><path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24'/><line x1='1' y1='1' x2='23' y2='23'/></svg>\n"
+                  "            </button>\n"
+                  "          </div>\n"
+                  "        </div>\n"
+                  "        <button type='submit' id='btn_submit' class='btn btn-primary' style='width:100%;justify-content:center;padding:10px 16px;font-size:0.95rem;'>\n"
+                  "          Sign In &rarr;\n"
+                  "        </button>\n"
+                  "      </form>\n"
+                  "      <div style='margin-top:22px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:14px;'>\n"
+                  "        <span style='font-size:0.75rem;color:#64748b;'>v");
+        html += FIRMWARE_VERSION;
+        html += F(" &bull; <span style='color:var(--green,#77b243);font-weight:600;'>&#9889; <span id='page_load_time'>-- ms</span></span></span>\n"
+                  "        <div class='theme-switch'>\n"
+                  "          <button id='themeBtnLight' class='theme-btn' onclick=\"setTheme('light')\" title='Light Theme'>\n"
+                  "            <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='4'/><path d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41'/></svg>\n"
+                  "          </button>\n"
+                  "          <button id='themeBtnDark' class='theme-btn' onclick=\"setTheme('dark')\" title='Dark Theme'>\n"
+                  "            <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/></svg>\n"
+                  "          </button>\n"
+                  "          <button id='themeBtnSystem' class='theme-btn' onclick=\"setTheme('system')\" title='System Theme'>\n"
+                  "            <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='3' width='20' height='14' rx='2'/><line x1='8' y1='21' x2='16' y2='21'/><line x1='12' y1='17' x2='12' y2='21'/></svg>\n"
+                  "          </button>\n"
+                  "        </div>\n"
+                  "      </div>\n"
+                  "    </div>\n"
+                  "  </div>\n"
+                  "</div>\n"
+                  "</body>\n</html>");
+        html.finish();
     }
 
     void handleCaptiveRedirect() {
@@ -503,11 +761,13 @@ private:
     }
 
 public:
-    BmsWebPortal(Preferences &p, BmsUartHandler &uart) : server(80), prefs(p), uartHandler(uart) {}
+    BmsWebPortal(Preferences &p, BmsUartHandler &uart) : server(80), prefs(p), uartHandler(uart), sessionToken("") {
+        updateSessionToken();
+    }
 
     void begin() {
-        const char* headerKeys[] = {"Authorization"};
-        server.collectHeaders(headerKeys, 1);
+        const char* headerKeys[] = {"Cookie", "Authorization", "Host", "Accept"};
+        server.collectHeaders(headerKeys, 4);
         setupRoutes();
         server.begin();
     }
@@ -518,6 +778,19 @@ public:
 
 private:
     void setupRoutes() {
+        // Login & Session Routes
+        server.on("/login", HTTP_GET, [this]() {
+            renderLoginPage();
+        });
+
+        server.on("/api/login", HTTP_POST, [this]() {
+            handleApiLogin();
+        });
+
+        server.on("/logout", [this]() {
+            handleLogout();
+        });
+
         server.on("/", HTTP_GET, [this]() {
             if (!checkWebAuth()) return;
             handleDashboard();
@@ -699,11 +972,28 @@ private:
             delay(500);
             ESP.restart();
         });
+        server.on("/forget_wifi", [this]() {
+            if (!checkWebAuth()) return;
+            prefs.remove(NVS_KEY_WIFI_SSID);
+            prefs.remove(NVS_KEY_WIFI_PASS);
+            server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='6;url=/'><style>body{background:#0f172a;color:#f59e0b;font-family:sans-serif;text-align:center;padding:50px;}</style></head><body><h2>WiFi credentials forgotten.</h2><p>Restarting in AP mode...</p><p>Redirecting in 6s...</p></body></html>");
+            delay(1000);
+            ESP.restart();
+        });
         server.on("/reset_wifi", [this]() {
             if (!checkWebAuth()) return;
             prefs.remove(NVS_KEY_WIFI_SSID);
             prefs.remove(NVS_KEY_WIFI_PASS);
-            server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='6;url=/'><style>body{background:#0f172a;color:#ef4444;font-family:sans-serif;text-align:center;padding:50px;}</style></head><body><h2>WiFi credentials erased.</h2><p>Restarting in AP mode...</p><p>Redirecting in 6s...</p></body></html>");
+            server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='6;url=/'><style>body{background:#0f172a;color:#f59e0b;font-family:sans-serif;text-align:center;padding:50px;}</style></head><body><h2>WiFi credentials forgotten.</h2><p>Restarting in AP mode...</p><p>Redirecting in 6s...</p></body></html>");
+            delay(1000);
+            ESP.restart();
+        });
+        server.on("/factory_reset", [this]() {
+            if (!checkWebAuth()) return;
+            prefs.clear();
+            initBmsDefaults();
+            saveRackConfigToNvs();
+            server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='6;url=/'><style>body{background:#0f172a;color:#ef4444;font-family:sans-serif;text-align:center;padding:50px;}</style></head><body><h2>Factory reset complete.</h2><p>All settings and rack configuration erased. Restarting in AP mode...</p><p>Redirecting in 6s...</p></body></html>");
             delay(1000);
             ESP.restart();
         });
@@ -731,14 +1021,6 @@ private:
 
         ChunkedHtmlSender html(server);
         html += getHtmlHeader("dashboard", "Dashboard");
-
-        // WiFi disconnected banner (in AP mode)
-        if (WiFi.status() != WL_CONNECTED) {
-            html += F("<div class=\"alert alert-warning\">");
-            html += F("<div><strong>⚠️ WiFi Not Connected:</strong> Emulator is running in Access Point mode. Connect to your local WiFi for network monitoring.</div>");
-            html += F("<a href=\"/settings\" class=\"btn btn-warning\" style=\"white-space:nowrap;\">📶 Configure WiFi →</a>");
-            html += F("</div>");
-        }
 
         // Hierarchy Alert if invalid
         if (!isHierarchyOk) {
@@ -1398,7 +1680,8 @@ private:
         html += F("<a href=\"/wifi\" class=\"btn btn-outline\">📶 Reconfigure WiFi</a>");
         html += F("<a href=\"/update\" class=\"btn btn-outline\">🚀 Firmware Update (OTA)</a>");
         html += F("<a href=\"/restart\" onclick=\"return confirm('Restart ESP32?');\" class=\"btn btn-outline\">🔄 Restart Device</a>");
-        html += F("<a href=\"/reset_wifi\" onclick=\"return confirm('Factory reset WiFi settings? Device will start in AP mode.');\" class=\"btn btn-outline\">⚠️ Factory Reset WiFi</a>");
+        html += F("<a href=\"/forget_wifi\" onclick=\"return confirm('Forget WiFi settings? Device will disconnect and start in AP mode.');\" class=\"btn btn-outline\">⚠️ Forget WiFi</a>");
+        html += F("<a href=\"/factory_reset\" onclick=\"return confirm('WARNING: Factory Reset will erase ALL configuration, passwords, and WiFi settings! Continue?');\" class=\"btn btn-outline\" style=\"color:var(--danger,#ef4444);border-color:rgba(239,68,68,0.4);\">⚠️ Factory Reset</a>");
         html += F("</div></div>");
 
         html += F("<form id=\"settingsForm\" onsubmit=\"saveSettings(event)\">");
@@ -1498,6 +1781,7 @@ private:
         // Card 3: Web Security & Access Protection
         bool authEn = prefs.getBool(NVS_KEY_AUTH_ENABLED, false);
         String authUser = prefs.getString(NVS_KEY_AUTH_USER, "admin");
+        String authPass = prefs.getString(NVS_KEY_AUTH_PASS, "admin");
         bool apiEn = prefs.getBool(NVS_KEY_API_AUTH_ENABLED, false);
         String apiTok = prefs.getString(NVS_KEY_API_TOKEN, "");
 
@@ -1513,7 +1797,12 @@ private:
 
         html += F("<div class=\"grid-2\">");
         html += "<div class=\"form-group\"><label>Admin Username</label><input type=\"text\" name=\"auth_usr\" placeholder=\"Username\" value=\"" + authUser + "\" class=\"form-control\"></div>";
-        html += F("<div class=\"form-group\"><label>Admin Password</label><input type=\"password\" name=\"auth_pwd\" placeholder=\"Leave blank to keep current password\" class=\"form-control\"></div>");
+        html += F("<div class=\"form-group\"><label>Admin Password</label>");
+        html += "<div class=\"pwd-wrap\"><input type=\"password\" name=\"auth_pwd\" value=\"" + authPass + "\" placeholder=\"Admin password\" class=\"form-control\">";
+        html += F("<button type=\"button\" class=\"pwd-toggle\" onclick=\"togglePassword(this)\" title=\"Toggle password visibility\" tabindex=\"-1\">");
+        html += F("<svg class=\"eye-open\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>");
+        html += F("<svg class=\"eye-closed\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:none;\"><path d=\"M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24\"/><line x1=\"1\" y1=\"1\" x2=\"23\" y2=\"23\"/></svg>");
+        html += F("</button></div></div>");
         html += F("</div>");
         html += F("<small style=\"color:var(--text-muted);display:block;margin-top:4px;\">When enabled, browser prompts for username and password to access the Web UI and settings.</small>");
 
@@ -1623,11 +1912,16 @@ private:
         }
 
         String currentSsid = prefs.getString(NVS_KEY_WIFI_SSID, "");
+        String currentPass = prefs.getString(NVS_KEY_WIFI_PASS, "");
         html += F("  <form method=\"POST\" action=\"/save\">\n");
         html += F("    <div class=\"form-group\"><label>WiFi Network Name (SSID):</label>\n");
         html += "      <input type=\"text\" id=\"ssidInput\" name=\"ssid\" required value=\"" + currentSsid + "\" placeholder=\"Select from list above or type SSID\" class=\"form-control\"></div>\n";
         html += F("    <div class=\"form-group\"><label>WiFi Password:</label>\n");
-        html += F("      <input type=\"password\" id=\"passInput\" name=\"pass\" placeholder=\"Enter WiFi password\" class=\"form-control\"></div>\n");
+        html += "      <div class=\"pwd-wrap\"><input type=\"password\" id=\"passInput\" name=\"pass\" value=\"" + currentPass + "\" placeholder=\"Enter WiFi password\" class=\"form-control\">\n";
+        html += F("      <button type=\"button\" class=\"pwd-toggle\" onclick=\"togglePassword(this)\" title=\"Toggle password visibility\" tabindex=\"-1\">\n");
+        html += F("        <svg class=\"eye-open\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>\n");
+        html += F("        <svg class=\"eye-closed\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"display:none;\"><path d=\"M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24\"/><line x1=\"1\" y1=\"1\" x2=\"23\" y2=\"23\"/></svg>\n");
+        html += F("      </button></div></div>\n");
         html += F("    <button type=\"submit\" class=\"btn btn-primary\" style=\"width:100%;padding:10px;font-size:0.95rem;justify-content:center;\">💾 Save and Connect</button>\n");
         html += F("  </form>\n");
         html += F("</div>\n");
@@ -2571,6 +2865,8 @@ private:
             prefs.putString(NVS_KEY_API_TOKEN, server.arg("api_tok"));
         }
 
+        updateSessionToken();
+
         server.send(200, "application/json", "{\"status\":\"ok\"}");
         delay(500);
         ESP.restart();
@@ -2608,7 +2904,10 @@ private:
         chunk += "# HELP esp32_cpu_frequency_mhz Current CPU clock frequency in MHz\n";
         chunk += "# TYPE esp32_cpu_frequency_mhz gauge\n";
         chunk += "esp32_cpu_frequency_mhz " + String(diag.cpuFreqMhz) + "\n\n";
-        flushChunk();
+
+        chunk += "# HELP esp32_reset_reason Last hardware/software reset reason\n";
+        chunk += "# TYPE esp32_reset_reason gauge\n";
+        chunk += "esp32_reset_reason{code=\"" + String(diag.resetReasonCode) + "\",reason=\"" + diag.resetReason + "\"} 1\n\n";
 
         chunk += "# HELP esp32_heap_free_bytes Current free heap memory in bytes\n";
         chunk += "# TYPE esp32_heap_free_bytes gauge\n";
@@ -2650,6 +2949,18 @@ private:
         chunk += "# TYPE esp32_wifi_signal_percent gauge\n";
         chunk += "esp32_wifi_signal_percent " + String(diag.wifiSignalPct) + "\n\n";
 
+        chunk += "# HELP esp32_wifi_connected WiFi station connection state (1 = connected, 0 = disconnected)\n";
+        chunk += "# TYPE esp32_wifi_connected gauge\n";
+        chunk += "esp32_wifi_connected " + String((WiFi.status() == WL_CONNECTED) ? 1 : 0) + "\n\n";
+
+        chunk += "# HELP esp32_wifi_ap_active Access Point state (1 = active, 0 = inactive)\n";
+        chunk += "# TYPE esp32_wifi_ap_active gauge\n";
+        chunk += "esp32_wifi_ap_active " + String((WiFi.getMode() & WIFI_AP) ? 1 : 0) + "\n\n";
+
+        chunk += "# HELP esp32_wifi_ap_clients Number of connected wireless clients to Access Point\n";
+        chunk += "# TYPE esp32_wifi_ap_clients gauge\n";
+        chunk += "esp32_wifi_ap_clients " + String(WiFi.softAPgetStationNum()) + "\n\n";
+
         chunk += "# HELP esp32_wifi_channel WiFi channel\n";
         chunk += "# TYPE esp32_wifi_channel gauge\n";
         chunk += "esp32_wifi_channel " + String(diag.wifiChannel) + "\n\n";
@@ -2665,11 +2976,58 @@ private:
         chunk += "# HELP esp32_sketch_free_bytes Free flash space available for OTA updates\n";
         chunk += "# TYPE esp32_sketch_free_bytes gauge\n";
         chunk += "esp32_sketch_free_bytes " + String(diag.sketchFreeBytes) + "\n\n";
-        flushChunk();
+
+        bool isNtpSynced = (time(nullptr) > 1577836800);
+        chunk += "# HELP esp32_ntp_synced Whether network time synchronization is active (1 = synced, 0 = uncalibrated)\n";
+        chunk += "# TYPE esp32_ntp_synced gauge\n";
+        chunk += "esp32_ntp_synced " + String(isNtpSynced ? 1 : 0) + "\n\n";
+
+        chunk += "# HELP esp32_ntp_last_sync_timestamp Timestamp of last successful SNTP synchronization\n";
+        chunk += "# TYPE esp32_ntp_last_sync_timestamp gauge\n";
+        chunk += "esp32_ntp_last_sync_timestamp " + String((long)lastNtpSyncTimestamp) + "\n\n";
 
         chunk += "# HELP esp32_system_info Device system metadata\n";
         chunk += "# TYPE esp32_system_info gauge\n";
         chunk += "esp32_system_info{chip=\"" + diag.chipModel + "\",revision=\"" + String(diag.chipRevision) + "\",cores=\"" + String(diag.cpuCores) + "\",reset_reason=\"" + diag.resetReason + "\",ssid=\"" + diag.wifiSsid + "\",ip=\"" + diag.wifiIp + "\",mac=\"" + diag.wifiMac + "\"} 1\n\n";
+        flushChunk();
+
+        // --- Pylontech Emulated Stack Metrics ---
+        chunk += "# HELP pylontech_scrape_success Whether the last serial scrape was successful\n";
+        chunk += "# TYPE pylontech_scrape_success gauge\n";
+        chunk += "pylontech_scrape_success 1\n\n";
+
+        chunk += "# HELP pylontech_modules_detected Number of active battery modules\n";
+        chunk += "# TYPE pylontech_modules_detected gauge\n";
+        chunk += "pylontech_modules_detected " + String(g_stack.module_count) + "\n\n";
+
+        chunk += "# HELP pylontech_voltage_millivolts Module overall voltage\n";
+        chunk += "# TYPE pylontech_voltage_millivolts gauge\n";
+        for (uint8_t i = 0; i < g_stack.module_count; i++) {
+            chunk += "pylontech_voltage_millivolts{module=\"" + String(i + 1) + "\"} " + String(g_stack.modules[i].voltage_mv) + "\n";
+        }
+        chunk += "\n";
+
+        chunk += "# HELP pylontech_current_milliamps Module overall current\n";
+        chunk += "# TYPE pylontech_current_milliamps gauge\n";
+        for (uint8_t i = 0; i < g_stack.module_count; i++) {
+            chunk += "pylontech_current_milliamps{module=\"" + String(i + 1) + "\"} " + String(g_stack.modules[i].current_ma) + "\n";
+        }
+        chunk += "\n";
+
+        chunk += "# HELP pylontech_soc_percent Module State of Charge percent\n";
+        chunk += "# TYPE pylontech_soc_percent gauge\n";
+        for (uint8_t i = 0; i < g_stack.module_count; i++) {
+            chunk += "pylontech_soc_percent{module=\"" + String(i + 1) + "\"} " + String(g_stack.modules[i].soc, 1) + "\n";
+        }
+        chunk += "\n";
+
+        chunk += "# HELP pylontech_soh_percent Module State of Health percent\n";
+        chunk += "# TYPE pylontech_soh_percent gauge\n";
+        for (uint8_t i = 0; i < g_stack.module_count; i++) {
+            chunk += "pylontech_soh_percent{module=\"" + String(i + 1) + "\"} " + String(g_stack.modules[i].soh_pct, 1) + "\n";
+        }
+        chunk += "\n";
+        flushChunk();
 
         chunk += "# HELP pylon_emulator_info Pylontech BMS Emulator metadata\n";
         chunk += "# TYPE pylon_emulator_info gauge\n";

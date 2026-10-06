@@ -1,6 +1,18 @@
 # WiFi-to-RS232 Firmware (ESP32)
 
-Firmware for the **Wemos D1 Mini ESP32** / **LOLIN S2 Mini** development boards, designed to poll Pylontech battery stacks (**US3000C**, **US3000D**) via RS232 and expose metrics to Prometheus, Home Assistant MQTT, REST API, and an interactive Web Dashboard.
+Firmware for the **Wemos D1 Mini ESP32** / **LOLIN S2 Mini** / **ESP32-C3 Super Mini** development boards, designed to poll Pylontech battery stacks (**US3000C**, **US3000D**) via RS232 and expose metrics to Prometheus, Home Assistant MQTT, REST API, and an interactive Web Dashboard.
+
+---
+
+## ⚡ One-Click Web Installer (No Toolchain Required)
+
+Flash this firmware directly from your web browser using Web Serial (Chrome, Edge, Brave, Opera):
+
+👉 **[Launch Web Installer & Flasher (stanoba.github.io/WiFi-to-RS232)](https://stanoba.github.io/WiFi-to-RS232/)**
+
+1. Connect your ESP32 via USB.
+2. Select **Pylon Smart Monitor**.
+3. Click **Connect & Flash**.
 
 ---
 

@@ -102,21 +102,33 @@ System health metrics from the ESP32 microcontroller itself. All metrics are pre
 | `esp32_cpu_temperature_celsius` | Gauge | °C | Internal chip temperature from built-in sensor |
 | `esp32_cpu_frequency_mhz` | Gauge | MHz | CPU clock frequency |
 
-#### Heap Memory
+#### Heap & PSRAM Memory
 | Metric | Type | Unit | Description |
-|:---|:---:|:---|:---|
+|:---|:---:|:---:|:---|
 | `esp32_heap_free_bytes` | Gauge | B | Current free heap |
 | `esp32_heap_total_bytes` | Gauge | B | Total heap size |
 | `esp32_heap_min_free_bytes` | Gauge | B | Historical minimum free heap (watermark since boot) |
 | `esp32_heap_max_alloc_bytes` | Gauge | B | Largest single contiguous free block |
-| `esp32_heap_fragmentation_percent` | Gauge | % | Heap fragmentation: `100 − (max_alloc / free × 100)` |
+| `esp32_heap_fragmentation_percent` | Gauge | % | Heap fragmentation: `100 - (max_alloc / free * 100)` |
+| `esp32_psram_total_bytes` | Gauge | B | Total external PSRAM size (when PSRAM is present) |
+| `esp32_psram_free_bytes` | Gauge | B | Free external PSRAM available |
 
-#### WiFi Signal
+#### Network & WiFi Connectivity
 | Metric | Type | Unit | Description |
-|:---|:---:|:---|:---|
+|:---|:---:|:---:|:---|
+| `esp32_wifi_connected` | Gauge | 0/1 | Station mode connection state (`1` = connected, `0` = disconnected) |
 | `esp32_wifi_rssi_dbm` | Gauge | dBm | WiFi received signal strength indicator |
-| `esp32_wifi_signal_percent` | Gauge | % | Mapped signal quality (0–100%) |
-| `esp32_wifi_channel` | Gauge | — | WiFi channel number |
+| `esp32_wifi_signal_percent` | Gauge | % | Mapped signal quality (0-100%) |
+| `esp32_wifi_channel` | Gauge | - | WiFi channel number |
+| `esp32_wifi_ap_active` | Gauge | 0/1 | SoftAP mode state (`1` = active, `0` = inactive) |
+| `esp32_wifi_ap_clients` | Gauge | clients | Number of clients currently connected to SoftAP |
+
+#### NTP Time Synchronization & System Reset
+| Metric | Type | Unit | Description |
+|:---|:---:|:---:|:---|
+| `esp32_reset_reason` | Gauge | - | Last CPU reset reason with `code` and `reason` labels (value always `1`) |
+| `esp32_ntp_synced` | Gauge | 0/1 | NTP clock synchronization state (`1` = synced, `0` = unsynced) |
+| `esp32_ntp_last_sync_timestamp` | Gauge | s | Unix epoch timestamp of last successful SNTP sync |
 
 #### Storage
 | Metric | Type | Unit | Description |

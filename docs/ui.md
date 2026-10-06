@@ -67,7 +67,7 @@ System configuration page:
 - **Security** — HTTP Basic Auth credentials for Web UI, Bearer Token for REST API.
 - **Polling** — Fast poll interval (default 60s), Slow poll interval (default 300s).
 - **Home Assistant MQTT** — Broker IP, port, credentials, topic prefix.
-- **System Actions** — Reboot, WiFi reconfigure, factory reset.
+- **System Actions** — Reboot ESP32, WiFi reconfigure, Forget WiFi, Complete Factory Reset.
 
 | Light Theme | Dark Theme |
 |:---:|:---:|

@@ -122,7 +122,15 @@ public:
     }
 
     void logInfo(const String &msg) {
-        append("[" + formatTime() + "] [SYSTEM] " + msg + "\n");
+        append("[" + formatTime() + "] [INFO] " + msg + "\n");
+    }
+
+    void logWarn(const String &msg) {
+        append("[" + formatTime() + "] [WARN] " + msg + "\n");
+    }
+
+    void logError(const String &msg) {
+        append("[" + formatTime() + "] [ERROR] " + msg + "\n");
     }
 
     void clear() {

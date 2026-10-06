@@ -6,6 +6,18 @@ It enables full offline development, automated testing, and validation of monito
 
 ---
 
+## ⚡ One-Click Web Installer (No Toolchain Required)
+
+Flash the BMS Emulator directly from your web browser using Web Serial (Chrome, Edge, Brave, Opera):
+
+👉 **[Launch Web Installer & Flasher (stanoba.github.io/WiFi-to-RS232)](https://stanoba.github.io/WiFi-to-RS232/)**
+
+1. Connect your ESP32 via USB.
+2. Select **Pylon BMS Emulator**.
+3. Click **Connect & Flash**.
+
+---
+
 ## 1. Hardware & Interconnect Cable (100% Reusability)
 
 The emulator uses the **exact same hardware board** (MAX3232 PCB + ESP32) as the Pylon Smart Monitor.

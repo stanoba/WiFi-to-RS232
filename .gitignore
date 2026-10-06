@@ -1,6 +1,9 @@
-# PlatformIO build directory
-.pio/
+# PlatformIO
+.pio
+.pioenvs
+.piolibdeps
 software/.pio/
+emulator/.pio/
 
 # Editor and IDE directories
 .vscode/
@@ -9,6 +12,7 @@ software/.pio/
 *.bak
 
 # Temporary scratch directory
+.temp/
 scratch/
 .env
 *.local.json
@@ -17,3 +21,16 @@ scratch/
 # CAM and manufacturing outputs
 CAMOutputs/
 
+# Release distribution builds
+dist/
+software/dist/
+emulator/dist/
+
+# Compiled binaries & logs
+*.bin
+*.elf
+*.o
+*.a
+
+# Allow webflasher release binaries for GitHub Pages
+!webflasher/firmware/*.bin

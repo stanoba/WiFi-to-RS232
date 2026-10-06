@@ -295,6 +295,10 @@ public:
         chunk += "# TYPE esp32_cpu_frequency_mhz gauge\n";
         chunk += "esp32_cpu_frequency_mhz " + String(sys.cpuFreqMHz) + "\n\n";
 
+        chunk += "# HELP esp32_reset_reason Last hardware/software reset reason\n";
+        chunk += "# TYPE esp32_reset_reason gauge\n";
+        chunk += "esp32_reset_reason{code=\"" + String(sys.resetReasonCode) + "\",reason=\"" + sys.resetReason + "\"} 1\n\n";
+
         chunk += "# HELP esp32_heap_free_bytes Current free heap memory in bytes\n";
         chunk += "# TYPE esp32_heap_free_bytes gauge\n";
         chunk += "esp32_heap_free_bytes " + String(sys.heapFree) + "\n\n";
@@ -315,6 +319,17 @@ public:
         chunk += "# TYPE esp32_heap_fragmentation_percent gauge\n";
         chunk += "esp32_heap_fragmentation_percent " + String(sys.heapFragPct) + "\n\n";
 
+        if (sys.psramTotal > 0) {
+            chunk += "# HELP esp32_psram_total_bytes Total PSRAM memory in bytes\n";
+            chunk += "# TYPE esp32_psram_total_bytes gauge\n";
+            chunk += "esp32_psram_total_bytes " + String(sys.psramTotal) + "\n\n";
+
+            chunk += "# HELP esp32_psram_free_bytes Free PSRAM memory in bytes\n";
+            chunk += "# TYPE esp32_psram_free_bytes gauge\n";
+            chunk += "esp32_psram_free_bytes " + String(sys.psramFree) + "\n\n";
+            flushChunk();
+        }
+
         chunk += "# HELP esp32_wifi_rssi_dbm WiFi signal strength in dBm\n";
         chunk += "# TYPE esp32_wifi_rssi_dbm gauge\n";
         chunk += "esp32_wifi_rssi_dbm " + String(sys.wifiRssi) + "\n\n";
@@ -322,6 +337,18 @@ public:
         chunk += "# HELP esp32_wifi_signal_percent WiFi signal quality percentage (0-100)\n";
         chunk += "# TYPE esp32_wifi_signal_percent gauge\n";
         chunk += "esp32_wifi_signal_percent " + String(sys.wifiSignalPct) + "\n\n";
+
+        chunk += "# HELP esp32_wifi_connected WiFi station connection state (1 = connected, 0 = disconnected)\n";
+        chunk += "# TYPE esp32_wifi_connected gauge\n";
+        chunk += "esp32_wifi_connected " + String((WiFi.status() == WL_CONNECTED) ? 1 : 0) + "\n\n";
+
+        chunk += "# HELP esp32_wifi_ap_active Access Point state (1 = active, 0 = inactive)\n";
+        chunk += "# TYPE esp32_wifi_ap_active gauge\n";
+        chunk += "esp32_wifi_ap_active " + String((WiFi.getMode() & WIFI_AP) ? 1 : 0) + "\n\n";
+
+        chunk += "# HELP esp32_wifi_ap_clients Number of connected wireless clients to Access Point\n";
+        chunk += "# TYPE esp32_wifi_ap_clients gauge\n";
+        chunk += "esp32_wifi_ap_clients " + String(WiFi.softAPgetStationNum()) + "\n\n";
 
         chunk += "# HELP esp32_wifi_channel WiFi channel\n";
         chunk += "# TYPE esp32_wifi_channel gauge\n";
@@ -338,6 +365,16 @@ public:
         chunk += "# HELP esp32_sketch_free_bytes Free flash space available for OTA updates\n";
         chunk += "# TYPE esp32_sketch_free_bytes gauge\n";
         chunk += "esp32_sketch_free_bytes " + String(sys.sketchFree) + "\n\n";
+
+        extern time_t lastNtpSyncTimestamp;
+        bool isSynced = (time(nullptr) > 1577836800);
+        chunk += "# HELP esp32_ntp_synced Whether network time synchronization is active (1 = synced, 0 = uncalibrated)\n";
+        chunk += "# TYPE esp32_ntp_synced gauge\n";
+        chunk += "esp32_ntp_synced " + String(isSynced ? 1 : 0) + "\n\n";
+
+        chunk += "# HELP esp32_ntp_last_sync_timestamp Timestamp of last successful SNTP synchronization\n";
+        chunk += "# TYPE esp32_ntp_last_sync_timestamp gauge\n";
+        chunk += "esp32_ntp_last_sync_timestamp " + String((long)lastNtpSyncTimestamp) + "\n\n";
 
         chunk += "# HELP esp32_system_info Device system metadata\n";
         chunk += "# TYPE esp32_system_info gauge\n";

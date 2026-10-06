@@ -1,6 +1,35 @@
-# WiFi-to-RS232 Pylon Smart Monitor
+# WiFi-to-RS232 Pylon Smart Monitor & BMS Emulator
 
-Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (**US3000C**, **US3000D**) via their RJ45 RS232 console port and exposing metrics over WiFi in **Prometheus format**, **Home Assistant MQTT**, and an interactive **Web Dashboard**.
+[![CI & Unit Tests](https://github.com/stanoba/WiFi-to-RS232/actions/workflows/ci.yml/badge.svg)](https://github.com/stanoba/WiFi-to-RS232/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/stanoba/WiFi-to-RS232?label=Release&logo=github&color=00b3ba)](https://github.com/stanoba/WiFi-to-RS232/releases/latest)
+[![Web Installer](https://img.shields.io/badge/Web%20Installer-ESP%20Web%20Tools-77b243?logo=googlechrome&logoColor=white)](https://stanoba.github.io/WiFi-to-RS232/)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+Hardware and firmware solution for monitoring Pylontech LiFePO4 battery stacks (**US2000**, **US3000C**, **US3000D**, **US5000**, **Force H1/H2**, **Pelio**, **UP2500/UP5000**) via their RJ45 RS232 console port and exposing metrics over WiFi in **Prometheus format**, **Home Assistant MQTT**, and an interactive **Web Dashboard** — accompanied by a full-featured **BMS Hardware Rack & Physics Emulator**.
+
+---
+
+## ⚡ One-Click Web Installer (No PlatformIO or Toolchain Required)
+
+You can flash either **Pylon Smart Monitor** or **Pylon BMS Emulator** directly from your web browser via Web Serial (Google Chrome, Microsoft Edge, Opera, Brave):
+
+👉 **[Launch Web Installer & Flasher (stanoba.github.io/WiFi-to-RS232)](https://stanoba.github.io/WiFi-to-RS232/)**
+
+1. Plug your ESP32 board into USB.
+2. Select your target firmware (**Smart Monitor** or **BMS Emulator**).
+3. Click **Connect & Flash**, select the serial COM port, and enjoy automated flashing!
+
+---
+
+## 🎯 Supported Hardware Targets
+
+Both firmwares are multi-platform and natively support 3 distinct ESP32 form factors:
+
+| Hardware Target | Microcontroller | Flash / RAM | USB Interface | Pinout / Features |
+|:---|:---|:---|:---|:---|
+| **Wemos D1 Mini 32** | ESP32 Dual-Core (240 MHz) | 4 MB / 320 KB | External UART (CH340/CP2102) | TX: GPIO5, RX: GPIO18, LED: GPIO2/19 |
+| **LOLIN S2 Mini** | ESP32-S2 Single-Core (240 MHz) | 4 MB / 2 MB PSRAM | Native USB CDC / OTG | TX: GPIO12, RX: GPIO11, LED: GPIO15/18 |
+| **ESP32-C3 Super Mini** | ESP32-C3 RISC-V (160 MHz) | 4 MB / 400 KB | Native USB CDC | TX: GPIO4, RX: GPIO5, LED: GPIO8/3 |
 
 ---
 

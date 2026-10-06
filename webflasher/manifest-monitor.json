@@ -1,0 +1,34 @@
+{
+  "name": "Pylon Smart Monitor (WiFi-to-RS232 Telemetry Bridge)",
+  "version": "1.0.0",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "firmware/pylon-smart-monitor-wemos_d1_mini32-factory-0x0.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-S2",
+      "parts": [
+        {
+          "path": "firmware/pylon-smart-monitor-lolin_s2_mini-factory-0x0.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        {
+          "path": "firmware/pylon-smart-monitor-esp32_c3_super_mini-factory-0x0.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

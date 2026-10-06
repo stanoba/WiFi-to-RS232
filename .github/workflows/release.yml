@@ -1,0 +1,104 @@
+name: Release Build & Web Flasher Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Release Tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build_and_release:
+    name: Build Multi-Platform Release & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO & esptool
+        run: |
+          pip install -U platformio esptool
+
+      - name: Cache PlatformIO Core & Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('software/platformio.ini', 'emulator/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
+
+      - name: Determine Version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.version_tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Building release for tag: $TAG"
+
+      - name: Run Software Host Unit Tests
+        run: |
+          pio test -d software -e native
+
+      - name: Run Emulator Host Unit Tests
+        run: |
+          pio test -d emulator -e native
+
+      - name: Compile Pylon Smart Monitor Firmware (ESP32, S2, C3)
+        run: |
+          pio run -d software -e wemos_d1_mini32 -e lolin_s2_mini -e esp32_c3_super_mini
+
+      - name: Compile Pylon BMS Emulator Firmware (ESP32, S2, C3)
+        run: |
+          pio run -d emulator -e wemos_d1_mini32 -e lolin_s2_mini -e esp32_c3_super_mini
+
+      - name: Package Multi-Platform Release Binaries
+        run: |
+          python package_release.py "${{ steps.get_version.outputs.tag }}"
+
+      - name: Create GitHub Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: "Pylon Smart Monitor & Emulator ${{ steps.get_version.outputs.tag }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*.bin
+            dist/*.txt
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Web Flasher Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'webflasher'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

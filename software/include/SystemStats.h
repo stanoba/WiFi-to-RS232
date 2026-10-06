@@ -11,6 +11,7 @@ struct SystemStats {
     uint8_t  cpuCores;
     String   chipModel;
     uint8_t  chipRevision;
+    uint8_t  resetReasonCode;
     String   resetReason;
 
     // RAM Statistics
