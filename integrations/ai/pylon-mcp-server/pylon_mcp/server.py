@@ -12,7 +12,7 @@ from .safety import SafetyError
 # Initialize FastMCP Server
 mcp = FastMCP(
     "pylon-monitor",
-    description="Pylontech LiFePO4 battery monitoring and diagnostics via WiFi-to-RS232 bridge or BMS emulator"
+    instructions="Pylontech LiFePO4 battery monitoring and diagnostics via WiFi-to-RS232 bridge or BMS emulator"
 )
 
 # Global configuration and HTTP client
