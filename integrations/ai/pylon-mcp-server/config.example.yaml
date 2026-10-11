@@ -1,0 +1,26 @@
+# Configuration for Pylontech FastMCP Server (WiFi-to-RS232 Bridge & BMS Emulator)
+# Copy this file to config.yaml and adjust your device IPs and Bearer tokens.
+
+devices:
+  - name: "monitor_garage"
+    type: "monitor"          # "monitor" (Smart Monitor) or "emulator" (BMS Emulator)
+    url: "http://192.168.1.150"
+    bearer_token: ""         # Optional: Leave empty if API Bearer token is disabled in /settings
+    description: "Main Battery Bank (US3000C x4) - Garage"
+
+  - name: "monitor_basement"
+    type: "monitor"
+    url: "http://192.168.1.151"
+    bearer_token: "psm_basement_secret"
+    description: "Secondary Battery Bank (US3000D x2) - Basement"
+
+  - name: "test_emulator"
+    type: "emulator"
+    url: "http://192.168.1.200"
+    bearer_token: ""
+    description: "Lab ESP32 BMS Physics & Rack Emulator"
+
+defaults:
+  default_device: "monitor_garage"   # Fallback device when 'device' parameter is omitted in MCP tool calls
+  timeout_seconds: 10.0              # HTTP request timeout
+  connect_timeout_seconds: 3.0       # HTTP connection timeout

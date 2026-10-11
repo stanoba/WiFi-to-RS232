@@ -5,6 +5,12 @@
 software/.pio/
 emulator/.pio/
 
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
 # Editor and IDE directories
 .vscode/
 .idea/
