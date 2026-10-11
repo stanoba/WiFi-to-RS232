@@ -84,9 +84,9 @@ defaults:
 
 ## 🤖 Connecting to AI Agents
 
-### Antigravity / Claude Desktop Configuration
+### 1. Antigravity / Claude Desktop / Cursor
 
-Add the following to your `mcp_servers` configuration file:
+Add the following to your MCP settings file (e.g. `~/.gemini/antigravity/mcp_config.json`, `claude_desktop_config.json`, or `.cursor/mcp.json`):
 
 ```json
 {
@@ -103,6 +103,50 @@ Add the following to your `mcp_servers` configuration file:
     }
   }
 }
+```
+
+### 2. OpenAI Codex / ChatGPT Desktop / OpenAI Agents SDK
+
+For OpenAI clients supporting MCP tools (ChatGPT Desktop, Codex CLI, or custom OpenAI Assistants / Agents SDK):
+
+**ChatGPT Desktop (`~/Library/Application Support/OpenAI/ChatGPT/mcp.json` or `%APPDATA%\OpenAI\ChatGPT\mcp.json`):**
+```json
+{
+  "servers": {
+    "pylon-monitor": {
+      "command": "python",
+      "args": [
+        "-m",
+        "pylon_mcp.server"
+      ],
+      "cwd": "/path/to/WiFi-to-RS232/integrations/ai/pylon-mcp-server",
+      "env": {
+        "PYLON_MCP_CONFIG": "/path/to/WiFi-to-RS232/integrations/ai/pylon-mcp-server/config.yaml"
+      }
+    }
+  }
+}
+```
+
+**OpenAI Codex CLI / Python Agent integration:**
+```python
+# Connect to pylon-mcp via stdio transport in Python:
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+server_params = StdioServerParameters(
+    command="python",
+    args=["-m", "pylon_mcp.server"],
+    cwd="/path/to/WiFi-to-RS232/integrations/ai/pylon-mcp-server",
+    env={"PYLON_MCP_CONFIG": "/path/to/WiFi-to-RS232/integrations/ai/pylon-mcp-server/config.yaml"}
+)
+
+async with stdio_client(server_params) as (read, write):
+    async with ClientSession(read, write) as session:
+        await session.initialize()
+        tools = await session.list_tools()
+        result = await session.call_tool("pylon_get_data", arguments={"device": "default"})
+        print(result.content)
 ```
 
 ---

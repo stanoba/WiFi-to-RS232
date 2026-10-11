@@ -66,7 +66,7 @@ WiFi-to-RS232/
 ├── software/           # Pylon Smart Monitor firmware (ESP32) — Prometheus, MQTT, Web Dashboard
 ├── emulator/           # Pylon BMS Console Emulator firmware (ESP32) — Battery stack simulator
 ├── hardware/           # MAX3232 PCB hardware schematics, Gerber files, and 3D enclosures
-├── integrations/       # Grafana dashboard templates and Home Assistant configs
+├── integrations/       # Grafana, Home Assistant, and AI FastMCP Server & Diagnostics Skill
 └── docs/               # In-depth documentation (Hardware, UI, REST API, Prometheus)
 ```
 
@@ -87,6 +87,12 @@ A companion firmware that runs on the **exact same ESP32 + MAX3232 hardware boar
 * **Master Hierarchy Validation:** Auto-enforces generation rank and firmware priority rules.
 * **Fault & Alarm Injection:** Test over-voltage, under-voltage, over-current, and high-temp triggers.
 * **Cross-over RJ45 Link:** Connect directly to the Smart Monitor via a standard RJ45 null-modem cable.
+
+### 3. AI FastMCP Server & Diagnostics Skill (`integrations/ai/`)
+Empower AI coding assistants and automation agents (Antigravity, Claude, Cursor, OpenAI Codex) with real-time battery awareness:
+* **FastMCP Server ([`pylon-mcp-server`](integrations/ai/pylon-mcp-server/)):** 11 typed tools for live telemetry, single-module diagnostics, 24h history, and safe console commands with multi-device YAML support.
+* **Safety Guardrails:** Strict endpoint blocklist (blocks OTA, reboot, factory reset) and model-aware command validation (handles US3000D vs US3000C differences).
+* **AI Diagnostics Skill ([`pylon-skill`](integrations/ai/pylon-skill/SKILL.md)):** Knowledge base with LiFePO4 voltage/thermal thresholds and diagnostic recipes.
 
 ---
 
@@ -188,6 +194,8 @@ pio device monitor -b 115200
 | **[`docs/api.md`](docs/api.md)** | REST API reference, endpoint schemas, integration examples |
 | **[`docs/prometheus.md`](docs/prometheus.md)** | Prometheus metrics reference and Grafana PromQL recipes |
 | **[`integrations/grafana/`](integrations/grafana/pylontech-smart-monitor-dashboard.json)** | Ready-to-import Grafana dashboard template for Prometheus |
+| **[`integrations/ai/pylon-mcp-server/`](integrations/ai/pylon-mcp-server/README.md)** | FastMCP Server setup guide, tools, and multi-device YAML configuration |
+| **[`integrations/ai/pylon-skill/`](integrations/ai/pylon-skill/SKILL.md)** | AI Diagnostic Skill with LiFePO4 health thresholds and hardware compatibility rules |
 
 
 ---

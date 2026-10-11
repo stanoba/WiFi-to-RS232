@@ -39,10 +39,12 @@ ALLOWED_RS232_COMMANDS = frozenset({
     "help",     # Help & command directory
 })
 
-# Commands permitted to take a single numeric module index (e.g. "bat 1", "stat 2")
+# Commands permitted to take a single numeric module index (e.g. "bat 1", "pwr 1", "stat 2", "info 1")
 ALLOWED_WITH_NUMERIC_ARG = frozenset({
     "bat",
+    "pwr",
     "stat",
+    "info",
 })
 
 
@@ -96,7 +98,8 @@ def validate_rs232_command(raw_cmd: str, profile: Optional[ModelProfile] = None)
     arg: Optional[str] = None
     if len(tokens) > 1:
         if base_cmd not in ALLOWED_WITH_NUMERIC_ARG:
-            raise SafetyError(f"Command '{base_cmd}' does not accept arguments. Only 'bat <n>' and 'stat <n>' accept a module ID.")
+            allowed_with_args = ", ".join(f"'{c} <n>'" for c in sorted(ALLOWED_WITH_NUMERIC_ARG))
+            raise SafetyError(f"Command '{base_cmd}' does not accept arguments. Only {allowed_with_args} accept a module ID.")
         
         arg = tokens[1]
         if not arg.isdigit():
@@ -129,6 +132,13 @@ def validate_rs232_command(raw_cmd: str, profile: Optional[ModelProfile] = None)
                 f"Command 'stat {arg}' is not supported on model '{profile.name}'. "
                 "Model D (US3000D) only supports 'stat' without arguments for the whole stack. "
                 "To inspect individual module statistics, use high-level tool 'pylon_get_module' or 'pylon_get_data'."
+            )
+
+        # Check 'info <n>' slave query compatibility
+        if base_cmd == "info" and arg is not None and not profile.slave_supports_info:
+            raise SafetyError(
+                f"Command 'info {arg}' is not supported on model '{profile.name}'. "
+                "Model D (US3000D) does not support slave info queries. Use 'info' without arguments."
             )
 
     return " ".join(tokens).lower()

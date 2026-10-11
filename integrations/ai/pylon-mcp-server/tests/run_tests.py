@@ -55,13 +55,15 @@ class TestPylonSafety(unittest.TestCase):
 
     def test_commands_with_numeric_arg(self):
         self.assertEqual(validate_rs232_command("bat 1"), "bat 1")
+        self.assertEqual(validate_rs232_command("pwr 1"), "pwr 1")
         self.assertEqual(validate_rs232_command("stat 2"), "stat 2")
+        self.assertEqual(validate_rs232_command("info 1"), "info 1")
 
     def test_disallowed_command_args(self):
         with self.assertRaises(SafetyError):
             validate_rs232_command("bat abc")
         with self.assertRaises(SafetyError):
-            validate_rs232_command("pwr 1")
+            validate_rs232_command("euro 1")
 
     def test_forbidden_rs232_commands(self):
         forbidden = ["shutdown", "reboot", "format", "reset", "sleep", "shut", "pwroff"]

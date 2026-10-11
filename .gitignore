@@ -23,6 +23,9 @@ scratch/
 .env
 *.local.json
 .devices.json
+config.yaml
+config.yml
+!config.example.yaml
 
 # CAM and manufacturing outputs
 CAMOutputs/

@@ -56,10 +56,12 @@ def test_allowed_rs232_commands():
 
 
 def test_allowed_commands_with_numeric_arg():
-    """Verify 'bat <n>' and 'stat <n>' accept numeric module index."""
+    """Verify 'bat <n>', 'pwr <n>', 'stat <n>', and 'info <n>' accept numeric module index."""
     assert validate_rs232_command("bat 1") == "bat 1"
     assert validate_rs232_command("bat 15") == "bat 15"
+    assert validate_rs232_command("pwr 1") == "pwr 1"
     assert validate_rs232_command("stat 2") == "stat 2"
+    assert validate_rs232_command("info 1") == "info 1"
 
 
 def test_disallowed_command_args():
@@ -68,10 +70,10 @@ def test_disallowed_command_args():
         validate_rs232_command("bat abc")
     
     with pytest.raises(SafetyError):
-        validate_rs232_command("pwr 1")  # pwr takes no arguments
+        validate_rs232_command("euro 1")  # euro takes no module arguments
         
     with pytest.raises(SafetyError):
-        validate_rs232_command("info 2")  # info takes no arguments via MCP
+        validate_rs232_command("help 1")  # help takes no arguments
 
 
 def test_forbidden_rs232_commands():
